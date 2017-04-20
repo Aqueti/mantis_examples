@@ -44,7 +44,10 @@ int main()
     camCB.data = cameraList;
     setNewCameraCallback(camCB);
 
-    /* the rest of this example will use the first camera in the list */
+
+    /****************************************************************
+     * THE REST OF THIS EXAMPLE WILL USE THE FIRST CAMERA IN THE LIST 
+     ****************************************************************/
     ACOS_CAMERA myMantis = cameraList[0];
 
     /* Check if the camera is receiving frame data from the physical
@@ -61,9 +64,13 @@ int main()
                    myMantis.camID);
             exit(0);
         }
+    } else{
+        printf("Virtual camera %u already receiving data from its %d mcams\n",
+                myMantis.camID,
+                myMantis.numMCams);
     }
 
-    /* retrieve a list of microcameras from the camera system */
+    /* retrieve a list of microcameras from the Mantis camera */
     MICRO_CAMERA mcamList[myMantis.numMCams];
     getCameraMCamList(myMantis, mcamList);
     for( int i = 0; i < myMantis.numMCams; i++ ){
@@ -73,12 +80,14 @@ int main()
                myMantis.camID);
     }
 
-    /* Now we can retrieve frames for any microcamera from our camera.
-     * Requesting time=0 will give us the most recent frame for that mcam.
-     * Be aware that since these requests are happening sequentially
-     * in a loop, the most recent frame retrieved from each mcam in 
-     * the list may be at different times. */
+    /* Now we can retrieve frames for any microcamera from our Mantis 
+     * camera. Requesting time=0 will give us the most recent frame 
+     * for that microcamera. Be aware that since these requests are 
+     * happening sequentially in a loop, the most recent frame retrieved 
+     * from each mcam in the list may be at different times since the 
+     * requests happen at different times. */
     for( int i = 0; i < myMantis.numMCams; i++ ){
+
         /* get the next frame for this mcam */
         FRAME frame = getFrame(myMantis, 
                                mcamList[i].mcamID,
@@ -101,8 +110,8 @@ int main()
         }
     }
 
-    /* Disconnect the cameras to prevent issues when another program 
-     * tries to connect */
+    /* Disconnect the cameras to prevent issues when another 
+     * program tries to connect */
     for( int i = 0; i < numCameras; i++ ){
         disconnectCamera(cameraList[i]);
     }

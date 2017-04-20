@@ -12,5 +12,8 @@ MantisGetFrames:
 McamStream:
 	gcc -o McamStream McamStream.c -lMantisAPI -lpthread
 
+MantisRecord:
+	gcc -o MantisRecord MantisRecord.c -lMantisAPI -lpthread
+
 clean:
 	rm MantisGetFrames HelloMantis McamStream
