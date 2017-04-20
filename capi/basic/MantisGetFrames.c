@@ -7,14 +7,12 @@
  * microcamera in a Mantis system and save them to disk
  *
  *****************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "mantis/MantisAPI.h"
-
 
 /**
  * \brief Function that handles new ACOS_CAMERA objects
@@ -27,13 +25,50 @@ void newCameraCallback(ACOS_CAMERA cam, void* data)
 }
 
 /**
+ * \brief prints the command line options
+ **/
+void printHelp()
+{
+   printf("MantisGetFrames Demo Application\n");
+   printf("Usage:\n");
+   printf("\t-ip <address> IP Address connect to (default localhost)\n");
+   printf("\t-port <port> port connect to (default 9999)\n\n");
+}
+
+/**
  * \brief Main function
  **/
-int main()
+int main(int argc, char * argv[])
 {
-    /* connect to the V2 instance */
-    char* ip = "localhost";
+    /* Parse command line inputs to determine IP address
+     * or port if provided from the command line */
+    char ip[24] = "localhost";
     int port = 9999;
+    for( int i = 1; i < argc; i++ ){
+       if( !strcmp(argv[i],"-ip") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+          int length = strlen(argv[i]);
+          if( length < 24 ){
+             strncpy(ip, argv[i], length);
+             ip[length] = 0;
+          }
+       } else if( !strcmp(argv[i],"-port") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+          int length = strlen(argv[i]);
+          port = atoi(argv[i]);
+       } else{
+          printHelp();
+          return 0;
+       }
+    }
+
+    /* connect to the V2 instance */
     cameraConnect(ip, port);
 
     /* get cameras from API */
@@ -95,18 +130,22 @@ int main()
                                ATL_TILING_1_1_2,
                                ATL_TILE_4K);
 
-        /* save the frame to a JPEG */
-        char fileName[32];
-        sprintf(fileName, "mcam_%u", mcamList[i].mcamID);
-        if( !saveMCamFrame(frame, fileName) ){
-            printf("Failed to save %s to disk\n", fileName);
-        } else{
-            printf("Saved frame %s to disk\n", fileName);
-        }
+        if( frame.m_image != NULL ){
+            /* save the frame to a JPEG */
+            char fileName[32];
+            sprintf(fileName, "mcam_%u", mcamList[i].mcamID);
+            if( !saveMCamFrame(frame, fileName) ){
+                printf("Failed to save %s to disk\n", fileName);
+            } else{
+                printf("Saved frame %s to disk\n", fileName);
+            }
 
-        /* return the frame buffer pointer to prevent memory leaks */
-        if( !returnPointer(frame.m_image) ){
-            printf("Failed to return the pointer for the frame buffer\n");
+            /* return the frame buffer pointer to prevent memory leaks */
+            if( !returnPointer(frame.m_image) ){
+                printf("Failed to return the pointer for the frame buffer\n");
+            }
+        } else{
+            printf("Failed to get frame for mcam %u\n", mcamList[i].mcamID);
         }
     }
 
@@ -114,6 +153,7 @@ int main()
      * program tries to connect */
     for( int i = 0; i < numCameras; i++ ){
         disconnectCamera(cameraList[i]);
+        sleep(0.1);
     }
 
     exit(1);

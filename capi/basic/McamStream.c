@@ -7,7 +7,6 @@
  * using a callback function by directly connecting to a Tegra
  *
  *****************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,18 +36,55 @@ void mcamFrameCallback(FRAME frame, void* data)
 }
 
 /**
+ * \brief prints the command line options
+ **/
+void printHelp()
+{
+   printf("McamStream Demo Application\n");
+   printf("Usage:\n");
+   printf("\t-ip <address> IP Address connect to (default 10.0.0.202)\n");
+   printf("\t-port <port> port connect to (default 9999)\n\n");
+}
+
+/**
  * \brief Main function
  **/
-int main()
+int main(int argc, char * argv[])
 {
+    /* Parse command line inputs to determine IP address
+     * or port if provided from the command line */
+    char ip[24] = "10.0.0.202";
+    int port = 9999;
+    for( int i = 1; i < argc; i++ ){
+       if( !strcmp(argv[i],"-ip") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+          int length = strlen(argv[i]);
+          if( length < 24 ){
+             strncpy(ip, argv[i], length);
+             ip[length] = 0;
+          }
+       } else if( !strcmp(argv[i],"-port") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+          int length = strlen(argv[i]);
+          port = atoi(argv[i]);
+       } else{
+          printHelp();
+          return 0;
+       }
+    }
+
     /* Connect directly to the Tegra hosting the microcamera.
      * If the IP/port of the desired microcamera is unknown, it
      * can be found using the getCameraMcamList method shown in 
-     * the MantisGetFrames example. This method returns MICRO_CAMERA 
-     * structs for each microcamera in a Mantis system, and the 
+     * the MantisGetFrames example, which returns MICRO_CAMERA 
+     * structs for each microcamera in a Mantis system. These 
      * structs contain the IP/port of the Tegras which host them */
-    char* ip = "10.0.0.202";
-    int port = 9999;
     mCamConnect(ip, port);
 
     /* get cameras from API */

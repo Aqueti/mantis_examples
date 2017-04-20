@@ -11,12 +11,9 @@
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
 
 #include "mantis/MantisAPI.h"
-
-#define IPSIZE 256
 
 /**
  * \brief Function that handles new ACOS_CAMERA objects
@@ -33,14 +30,11 @@ void newCameraCallback(ACOS_CAMERA cam, void* data)
  **/
 void printHelp()
 {
-   printf("HelloMantis Demo Application\n\n");
-   printf("Usage:\n\n");
-   printf("\t-ip <address> IP Address connect to\n");
-   printf("\t-port <port> port connect to\n");
-   printf("\n");
- 
+   printf("HelloMantis Demo Application\n");
+   printf("Usage:\n");
+   printf("\t-ip <address> IP Address connect to (default localhost)\n");
+   printf("\t-port <port> port connect to (default 9999)\n\n");
 }
-
 
 /**
  * \brief Main function
@@ -48,40 +42,31 @@ void printHelp()
 int main(int argc, char * argv[])
 {
     /* IP and port of the V2 instance managing the cameras */
-    char ip[IPSIZE] = "localhost";
+    char ip[24] = "localhost";
     int port = 9999;
 
-    /* Parse inputs to determine IP address
-     * or port if provided from the command line
-     */
-    for( int i = 1; i < argc; i++ ) 
-    {
-       //Extract ip
-       if( !strcmp( argv[i],"-ip")) {
-          if( argc <= i+1 ) {
+    /* Parse command line inputs to determine IP address
+     * or port if provided from the command line */
+    for( int i = 1; i < argc; i++ ){
+       if( !strcmp(argv[i],"-ip") ){
+          if( ++i >= argc ){
              printHelp();
              return 0;
           }
-          int length = strlen( argv[i+1]);
-          if( length < IPSIZE-1 ) {
-             strncpy(ip, argv[i+1], length);
+          int length = strlen(argv[i]);
+          if( length < 24 ){
+             strncpy(ip, argv[i], length);
              ip[length] = 0;
           }
-          i = i+1;
-       } 
-       //Extreact ip
-       else if( !strcmp( argv[i],"-port")) {
-          if( argc <= i+1 ) {
+       } else if( !strcmp(argv[i],"-port") ){
+          if( ++i >= argc ){
              printHelp();
              return 0;
           }
-          int length = strlen( argv[i+1]);
-          port = atoi( argv[i+1]);
-       }
-       else
-       {
+          int length = strlen(argv[i]);
+          port = atoi(argv[i]);
+       } else{
           printHelp();
-          printf("\nIncorrect command line arguments!\n\n");
           return 0;
        }
     }

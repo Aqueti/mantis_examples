@@ -1,4 +1,4 @@
-all: HelloMantis MantisGetFrames McamStream
+all: HelloMantis MantisGetFrames McamStream MantisRecord
 
 HelloMantis: HelloMantis.o
 	gcc -o HelloMantis HelloMantis.o -lMantisAPI -lpthread
@@ -16,4 +16,4 @@ MantisRecord:
 	gcc -o MantisRecord MantisRecord.c -lMantisAPI -lpthread
 
 clean:
-	rm MantisGetFrames HelloMantis McamStream
+	rm MantisGetFrames HelloMantis McamStream MantisRecord
