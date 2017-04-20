@@ -1,7 +1,10 @@
 all: HelloMantis MantisGetFrames McamStream
 
-HelloMantis:
-	gcc -o HelloMantis HelloMantis.c -lMantisAPI -lpthread
+HelloMantis: HelloMantis.o
+	gcc -o HelloMantis HelloMantis.o -lMantisAPI -lpthread
+
+HelloMantis.o: HelloMantis.c
+	gcc -c -o HelloMantis.o HelloMantis.c 
 
 MantisGetFrames:
 	gcc -o MantisGetFrames MantisGetFrames.c -lMantisAPI -lpthread

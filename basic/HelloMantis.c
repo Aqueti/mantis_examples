@@ -31,7 +31,7 @@ void newCameraCallback(ACOS_CAMERA cam, void* data)
 int main()
 {
     /* IP and port of the V2 instance managing the cameras */
-    char* ip = "localhost";
+    char* ip = "10.0.0.180";
     int port = 9999;
 
     /* connect to the V2 instance */
