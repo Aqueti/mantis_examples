@@ -73,7 +73,10 @@ int main()
         printf("Found mcam with ID %u\n", mcamList[i].mcamID);
     }
 
-    /* The rest of this example will use the first microcamera in the list */
+
+    /*********************************************************************
+     * THE REST OF THIS EXAMPLE WILL USE THE FIRST MICROCAMERA IN THE LIST 
+     *********************************************************************/
     MICRO_CAMERA myMCam = mcamList[0];
 
     /* First, we start the microcamera stream. The port can be any 

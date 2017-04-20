@@ -12,7 +12,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string.h>
+
 #include "mantis/MantisAPI.h"
+
+#define IPSIZE 256
 
 /**
  * \brief Function that handles new ACOS_CAMERA objects
@@ -24,15 +28,61 @@ void newCameraCallback(ACOS_CAMERA cam, void* data)
     camList[cameraCounter++] = cam;
 }
 
+/**
+ * \brief prints the command line options
+ **/
+void printHelp()
+{
+   printf("HelloMantis Demo Application\n\n");
+   printf("Usage:\n\n");
+   printf("\t-ip <address> IP Address connect to\n");
+   printf("\t-port <port> port connect to\n");
+   printf("\n");
+ 
+}
+
 
 /**
  * \brief Main function
  **/
-int main()
+int main(int argc, char * argv[])
 {
     /* IP and port of the V2 instance managing the cameras */
-    char* ip = "10.0.0.180";
+    char ip[IPSIZE] = "localhost";
     int port = 9999;
+
+    //Parse inputs
+    for( int i = 1; i < argc; i++ ) 
+    {
+       //Extreact ip
+       if( !strcmp( argv[i],"-ip")) {
+          if( argc <= i+1 ) {
+             printHelp();
+             return 0;
+          }
+          int length = strlen( argv[i+1]);
+          if( length < IPSIZE-1 ) {
+             strncpy(ip, argv[i+1], length);
+             ip[length] = 0;
+          }
+          i = i+1;
+       } 
+       //Extreact ip
+       else if( !strcmp( argv[i],"-port")) {
+          if( argc <= i+1 ) {
+             printHelp();
+             return 0;
+          }
+          int length = strlen( argv[i+1]);
+          port = atoi( argv[i+1]);
+       }
+       else
+       {
+          printHelp();
+          printf("\nIncorrect command line arguments!\n\n");
+          return 0;
+       }
+    }
 
     /* connect to the V2 instance */
     cameraConnect(ip, port);
