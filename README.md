@@ -4,7 +4,7 @@ This repository contains example code used to demonstrate MantisAPI functionalit
 # About Aqueti
 Aqueti builds “parallel supercameras ” with novel optical, electronic and software architectures. Developed around NVidia Tegra processor line, the acOS (AquetiCamera Operating System) provides an ideal platform for flexible parallel super camera construction. Using this platform, Aqueti can rapidly assemble arrays to match any field of view, resolution and environmental requirement. The platform provides real - time rendering  and flexible support for customer video analysis and image processing software. 
 
-** For further information related Aqueti and our products, please checkout out websites: **
+**For further information related Aqueti and our products, please checkout out websites:**
 * http://aqueti.com - U.S. Site
 * http://aqueti.cn  - Chinese Site
 
