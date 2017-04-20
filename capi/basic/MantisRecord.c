@@ -56,11 +56,13 @@ void printHelp()
  **/
 int main(int argc, char * argv[])
 {
-    /* connect to the V2 instance */
+    /* set default IP address and port */
     char ip[IPSIZE] = "localhost";
     int port = 9999;
 
-    //Parse inputs
+    /* parse inputs to allow users to override ip and port from
+     * the command line. 
+     */
     for( int i = 1; i < argc; i++ ) 
     {
        //Extract ip
@@ -93,8 +95,7 @@ int main(int argc, char * argv[])
        }
     }
 
-
-
+    /* connect to the V2 instance */
     cameraConnect(ip, port);
 
     /* get cameras from API */

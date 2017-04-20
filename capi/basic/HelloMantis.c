@@ -51,10 +51,12 @@ int main(int argc, char * argv[])
     char ip[IPSIZE] = "localhost";
     int port = 9999;
 
-    //Parse inputs
+    /* Parse inputs to determine IP address
+     * or port if provided from the command line
+     */
     for( int i = 1; i < argc; i++ ) 
     {
-       //Extreact ip
+       //Extract ip
        if( !strcmp( argv[i],"-ip")) {
           if( argc <= i+1 ) {
              printHelp();
