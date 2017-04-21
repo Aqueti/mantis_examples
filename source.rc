@@ -1,0 +1,6 @@
+# Expand the $PATH to include mantis libraries
+# use
+export PATH=$PATH:/usr/local/python/mantis:/usr/local/lib/mantis/:/usr/local/include/mantis
+export PYTHONPATH=$PYTHONPATH:/usr/local/python/mantis
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
