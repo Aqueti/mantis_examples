@@ -8,6 +8,10 @@ Aqueti builds “parallel supercameras ” with novel optical, electronic and so
 * http://aqueti.com - U.S. Site
 * http://aqueti.cn  - Chinese Site
 
+#Configuration
+Prior to building or running software, the proper environment variables need to be set. This is done by running:
+"source source.rc" in the top level of the repository.
+
 # Documentation
 Documentation for Aqueti systems will be maintained in the wiki provided with the repository or can be generated as part of the build process. In addition, it can be found online at http://aqueti.tv/api. 
 
