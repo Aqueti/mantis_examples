@@ -5,7 +5,7 @@ import sys
 from pcvform import Ui_PyCamViewer as UI
 from PIL import Image
 from PIL.ImageQt import ImageQt
-import MantisPyAPI as api
+import mantis.MantisPyAPI as api
 
 try:
     from PySide import QtCore, QtWidgets
@@ -22,8 +22,8 @@ class PyCamViewer(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self)
         self.newImage.connect(self.receiveImage)
         app.aboutToQuit.connect(self.exiting)
-        # --- Set the new mcam callback ---
-        api.setNewMCamCallback(self.newMcam)
+        # --- Initialize the frame receiver ---
+        api.initMCamFrameReceiver(9002, 1)
         # ---- Set the frame callback -----
         api.setMCamFrameCallback(self.call) 
         # ---------------------------------
@@ -33,7 +33,6 @@ class PyCamViewer(QtWidgets.QMainWindow):
         ui.port.setValidator(QtGui.QIntValidator(1, 65535, self))
 
     def newMcam(self, mcamhandle):
-        print("mcam connected")
         if not self.mcamhandle:
             self.mcamhandle = mcamhandle
 
@@ -43,13 +42,13 @@ class PyCamViewer(QtWidgets.QMainWindow):
         self.newImage.emit(meta, image)
 
     def startStreaming(self, start):
-        print("startstreaming")
         if start and self.mcamhandle:
             # --- Start streaming ---
             api.startMCamStream(self.mcamhandle, 9002)
             # --- Only receive HD ---
             api.setMCamStreamFilter(self.mcamhandle, 9002, api.ATL_SCALE_MODE_HD)
             # -----------------------
+            
         elif self.mcamhandle:
             api.stopMCamStream(self.mcamhandle, 9002)
 
@@ -64,11 +63,12 @@ class PyCamViewer(QtWidgets.QMainWindow):
         lbl.setPixmap(QtGui.QPixmap.fromImage(qimage))
 
     def startServer(self, start):
-        print("startserver")
         if start:
             self.ipAddress = ui.ipAddress.text()
             # --- Connect to the camera ---
             api.mCamConnect(self.ipAddress, int(ui.port.text()))
+            # --- Set the new mcam callback ---
+            api.setNewMCamCallback(self.newMcam)
             # -----------------------------
         else:
             # --- Disconnect from the camera ---
@@ -78,6 +78,8 @@ class PyCamViewer(QtWidgets.QMainWindow):
     def exiting(self):
         self.startStreaming(False)
         self.startServer(False)
+        time.sleep(0.1) # Give it time to disconnect.  This is a known bug
+        api.closeMCamFrameReceiver(9002)
 
 if __name__ == "__main__":
         app = QtWidgets.QApplication(sys.argv)

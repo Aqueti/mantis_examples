@@ -1,28 +1,13 @@
-#!/usr/bin/python3
-"""
-THis function connects to the mantis camera at the address indicated by ip. To connect to a 
-different camera, this field needs to change
-"""
 import MantisPyAPI as api
 
 cameras = []
-#ip = "localhost"
-ip = "10.0.0.180"
-port = 9999
-
-
 
 def newCameraCallback(camera):
     """Function that handles new ACOS_CAMERA objects"""
     cameras.append(camera)
 
-
-"""Parse command line if provided"""
-
-
 """Connects to an acos camera"""
-print("Connecting to "+ip+":"+str(port))
-api.cameraConnect(ip, port)
+api.cameraConnect("localhost", 9999)
 
 """Get the number of connected cameras"""
 numCameras = api.getNumberOfCameras()
