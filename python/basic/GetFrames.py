@@ -1,4 +1,4 @@
-import mantis.MantisPyAPI as api
+import MantisPyAPI as api
 
 import time, sys
 
