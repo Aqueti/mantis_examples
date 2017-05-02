@@ -1,4 +1,5 @@
-import MantisPyAPI as api
+import mantis.MantisPyAPI as api
+
 import time, sys
 
 cameraList = []

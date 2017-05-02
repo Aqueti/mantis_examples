@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import sys
+import sys, time
 from pcvform import Ui_PyCamViewer as UI
 from PIL import Image
 from PIL.ImageQt import ImageQt
-import mantis.MantisPyAPI as api
+import MantisPyAPI as api
 
 try:
     from PySide import QtCore, QtWidgets
@@ -26,6 +26,8 @@ class PyCamViewer(QtWidgets.QMainWindow):
         api.initMCamFrameReceiver(9002, 1)
         # ---- Set the frame callback -----
         api.setMCamFrameCallback(self.call) 
+        # --- Set the new mcam callback ---
+        api.setNewMCamCallback(self.newMcam)
         # ---------------------------------
 
     def setup(self, ui):
@@ -50,7 +52,9 @@ class PyCamViewer(QtWidgets.QMainWindow):
             # -----------------------
             
         elif self.mcamhandle:
+            # --- Start streaming ---
             api.stopMCamStream(self.mcamhandle, 9002)
+            # -----------------------
 
     def setShutter(self, val):
         # --- Set the Shutter value ---
@@ -67,8 +71,6 @@ class PyCamViewer(QtWidgets.QMainWindow):
             self.ipAddress = ui.ipAddress.text()
             # --- Connect to the camera ---
             api.mCamConnect(self.ipAddress, int(ui.port.text()))
-            # --- Set the new mcam callback ---
-            api.setNewMCamCallback(self.newMcam)
             # -----------------------------
         else:
             # --- Disconnect from the camera ---
@@ -78,7 +80,7 @@ class PyCamViewer(QtWidgets.QMainWindow):
     def exiting(self):
         self.startStreaming(False)
         self.startServer(False)
-        time.sleep(0.1) # Give it time to disconnect.  This is a known bug
+        time.sleep(0.2) # Give it time to disconnect.  This is a known bug
         api.closeMCamFrameReceiver(9002)
 
 if __name__ == "__main__":
@@ -88,8 +90,4 @@ if __name__ == "__main__":
         ui.setupUi(myapp)
         myapp.setup(ui)
         myapp.show()
-        rc = app.exec_()
-        del myapp
-        del ui
-        del app
-        exit(rc)
+        exit(app.exec_())
