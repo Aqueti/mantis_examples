@@ -1,4 +1,4 @@
-all: HelloMantis MantisGetFrames McamStream MantisRecord GetClipList SaveClip GetClipMcamImages
+all: HelloMantis MantisGetFrames McamStream MantisRecord GetClipList SaveClip GetClipMcamImages MantisSetExposures
 
 HelloMantis: HelloMantis.o
 	gcc -o HelloMantis HelloMantis.o -lMantisAPI -lpthread
@@ -24,5 +24,9 @@ SaveClip:
 GetClipMcamImages:
 	gcc -o GetClipMcamImages GetClipMcamImages.c -lMantisAPI -lpthread
 
+MantisSetExposures:
+	gcc -o MantisSetExposures MantisSetExposures.c -lMantisAPI -lpthread
+
+
 clean:
-	rm MantisGetFrames HelloMantis McamStream MantisRecord GetClipList SaveClip GetClipMcamImages
+	rm MantisGetFrames HelloMantis McamStream MantisRecord GetClipList SaveClip GetClipMcamImages MantisSetExposures
