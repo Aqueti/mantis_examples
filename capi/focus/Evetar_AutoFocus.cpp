@@ -16,18 +16,18 @@
 #include <unistd.h>
 #include <math.h>
 
-// #include "opencv2/core/utility.hpp"
-// #include "opencv2/imgproc.hpp"
-// #include "opencv2/imgcodecs.hpp"
-// #include "opencv2/highgui.hpp"
-// #include <opencv2/core/core.hpp>
-// #include <opencv2/highgui/highgui.hpp>
+#include "opencv2/core/utility.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <iostream>
 
 #include "mantis/MantisAPI.h"
 
 
-// using namespace cv;
+using namespace cv;
 using namespace std;
 
 void newMCamCallback(MICRO_CAMERA mcam, void* data)
@@ -43,10 +43,14 @@ void newMCamCallback(MICRO_CAMERA mcam, void* data)
  **/
 void mcamFrameCallback(FRAME frame, void* data)
 {
-    printf("Received a frame for microcamera %u with timestamp %lu\n",
-           frame.m_metadata.m_camId,
-           frame.m_metadata.m_timestamp);
+    //printf("Received a frame for microcamera %u with timestamp %lu\n",
+          // frame.m_metadata.m_camId,
+           //frame.m_metadata.m_timestamp);
+           ; //do nothing
 }
+
+
+
 
 /**
  * \ Main Function that steps the focus motors and computes a focus metric
@@ -54,7 +58,7 @@ void mcamFrameCallback(FRAME frame, void* data)
  
 int main()
 {
-    char ip[24] = "10.0.0.229";
+    char ip[24] = "10.0.0.152";
     int port = 9999;
     mCamConnect(ip, port);
     initMCamFrameReceiver( 11001, 1 );
@@ -96,20 +100,63 @@ int main()
         printf("Failed to start streaming mcam %u\n", myMCam.mcamID);
         exit(0);
     }
-
-    FRAME frame = grabMCamFrame(11001, 1.0 );
-    //uint8_t img = reinterpret_cast<uint8_t>( frame.m_image );
-    if (!saveMCamFrame(frame, "frame")){
-        printf("Unable to save frame\n");
-        }
-    //cv::Mat TempMat = cv::Mat(1080, 1920, CV_8UC1, img);
-    //imshow("Frame!",TempMat);
-    //waitKey(0);
-    cout << "Got a frame" << "\n";
-
+    setMCamStreamFilter(myMCam, 11001, ATL_SCALE_MODE_HD);
+    //Bring Mcam focus to near
+    //sleep(10);
+    setMCamFocusNear(myMCam, 0);
+    sleep(3);
+    
+    double metric[23] = {0};
+    double metprev = 0;
+    double localbestmetric[1] = {0};
+    double globalbestmetric[1] = {0};
+    int globalbestpos = 0;
+    int step = 100;
+    // Loop through the images
+    for ( int i = 0; i <= 22; i++ ){
+        cout << "Current Position: "+to_string(i*step) << "\n";
+        setMCamFocusFar(myMCam, step);
+        sleep(1.5);
+        FRAME frame = grabMCamFrame(11001, 1.0 );
+        if (!saveMCamFrame(frame, "focustmp")){
+            printf("Unable to save frame\n");
+            }
+        Mat loaded, edge;
+        loaded = imread("focustmp.jpeg",1);
+        //loaded = Mat wrapped(1080, 1920, CV_8UC1, reinterpret_cast<int>(frame.m_image), Mat::AUTO_STEP);
+        int edgeThresh = 1;
+        int imgsize = 3840*2160;
+        Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
+        metric[i+1] = cv::sum( edge )[0]/imgsize;
+        cout << "Current metric value: "+to_string(metric[i]) << "\n";
+        //imshow("Frame!",edge);
+        //waitKey(1000);
+        
+        if ( metric[i+1] > metric[i]){
+            cout << "metric value increased" << "\n";
+            
+            localbestmetric[1] = metric[i+1];
+            //If the local best value is greater the the current global best, update the global best to the current value and position
+                if ( localbestmetric[1] > globalbestmetric[1] ){
+                cout << "Global best updated" << "\n";
+                globalbestmetric[1] = localbestmetric[1];
+                globalbestpos = i+1;            
+            }
+        }   
+    }
+    //sleep(10);
+    setMCamFocusNear(myMCam, 0);
+    sleep(4);
+    
+    //For some reason have to send this command a second time -- Possible error state on motor
+    setMCamFocusNear(myMCam, 0);
+    sleep(3);
+    setMCamFocusFar(myMCam, globalbestpos*step);
+    sleep(3);
     closeMCamFrameReceiver( 11001 );
     mCamDisconnect(ip, port);
-
+    
+    cout << "Best Focus metric of: " + std::to_string(globalbestmetric[1]) + " at position: " + std::to_string(globalbestpos) << "\n";
     exit(1);
 }
 
