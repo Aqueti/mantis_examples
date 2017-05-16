@@ -86,6 +86,7 @@ int main(int argc, char * argv[])
      * structs for each microcamera in a Mantis system. These 
      * structs contain the IP/port of the Tegras which host them */
     mCamConnect(ip, port);
+    initMCamFrameReceiver( 11001, 1 );
 
     /* get cameras from API */
     int numMCams = getNumberOfMCams();
@@ -146,6 +147,7 @@ int main(int argc, char * argv[])
         printf("Failed to stop streaming mcam %u\n", myMCam.mcamID);
     }
     mCamDisconnect(ip, 11001);
+    closeMCamFrameReceiver( 11001 );
 
     exit(1);
 }
