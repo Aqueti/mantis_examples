@@ -7,7 +7,7 @@ def newCameraCallback(camera):
     cameras.append(camera)
 
 """Connects to an acos camera"""
-api.cameraConnect("localhost", 9999)
+api.connectToCameraServer("localhost", 9999);
 
 """Get the number of connected cameras"""
 numCameras = api.getNumberOfCameras()

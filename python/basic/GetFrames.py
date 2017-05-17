@@ -8,7 +8,7 @@ def newCameraCallback(camera):
     """Function that handles new ACOS_CAMERA objects"""
     cameraList.append(camera)
 
-api.cameraConnect("localhost", 9999)
+api.connectToCameraServer("localhost", 9999)
 
 """set the function that is called when a new camera is connected"""
 api.setNewCameraCallback(newCameraCallback)

@@ -120,7 +120,7 @@ int main(int argc, char * argv[])
     printf("New clip callback registered with the API\n");
 
     /* connect to the V2 instance */
-    cameraConnect(ip, port);
+    connectToCameraServer(ip, port);
     sleep(1);
 
     exit(1);

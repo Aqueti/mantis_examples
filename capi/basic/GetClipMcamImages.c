@@ -119,7 +119,7 @@ int main(int argc, char * argv[])
     }
 
     /* connect to the V2 instance */
-    cameraConnect(ip, port);
+    connectToCameraServer(ip, port);
     sleep(1);
 
     /* get cameras from API */

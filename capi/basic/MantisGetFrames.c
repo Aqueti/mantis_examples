@@ -69,7 +69,7 @@ int main(int argc, char * argv[])
     }
 
     /* connect to the V2 instance */
-    cameraConnect(ip, port);
+    connectToCameraServer(ip, port);;
 
     /* get cameras from API */
     int numCameras = getNumberOfCameras();
