@@ -105,6 +105,24 @@ int main(int argc, char * argv[])
      ****************************************************************/
     ACOS_CAMERA myMantis = cameraList[0];
 
+    /* Check if the camera is connected to the physical camera system
+     * (this should be off by default for a new camera object) and
+     * establish a connection if needed */
+    if( !isConnected(myMantis) ){
+        if( !toggleConnection(myMantis, true, 5000) ){
+            printf("Failed to establish connection for camera %u!\n",
+                   myMantis.camID);
+            return 0;
+        } else{
+            printf("Camera %u is now connected to its physical camera system\n",
+                   myMantis.camID);
+            sleep(1);
+        }
+    } else{
+        printf("Camera %u is already connected to its physical camera system\n",
+               myMantis.camID);
+    }
+
     /* Check if the camera is receiving frame data from the physical
      * camera system and tell the camera to start receiving data if needed. 
      * This is unnecessary since startRecording automatically performs this 
@@ -112,9 +130,8 @@ int main(int argc, char * argv[])
      * recording a clip of data for a Mantis system */
     if( !isReceivingData(myMantis) ){
         if( toggleReceivingData(myMantis, true) ){
-            printf("Virtual camera %u now receiving data from its %d mcams\n",
-                   myMantis.camID,
-                   myMantis.numMCams);
+            printf("Virtual camera %u now receiving data\n",
+                   myMantis.camID);
             sleep(0.5); //wait to give the camera time to start receiving
         } else{
             printf("Virtual camera %u failed to start receiving data!\n",
@@ -122,9 +139,8 @@ int main(int argc, char * argv[])
             exit(0);
         }
     } else{
-        printf("Virtual camera %u already receiving data from its %d mcams\n",
-                myMantis.camID,
-                myMantis.numMCams);
+        printf("Virtual camera %u already receiving data\n",
+                myMantis.camID);
     }
     
     /* Now we can start recording a clip. If a name for the clip is not
