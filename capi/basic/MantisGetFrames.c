@@ -85,6 +85,38 @@ int main(int argc, char * argv[])
      ****************************************************************/
     ACOS_CAMERA myMantis = cameraList[0];
 
+    /* Check if the camera is connected to the physical camera system
+     * (this should be off by default for a new camera object) and
+     * establish a connection if needed */
+    if( !isConnected(myMantis) ){
+        if( !connected ){
+            if( !toggleConnection(myMantis, true, 5000) ){
+                printf("Failed to establish connection for camera %u!\n",
+                       myMantis.camID);
+                return 0;
+            } else{
+                printf("Camera %u is now connected to its physical camera system\n",
+                       myMantis.camID);
+            }
+        }
+    } else{
+        printf("Camera %u is already connected to its physical camera system\n",
+               myMantis.camID);
+    }
+
+    /* If this camera reported 0 microcameras, this means that it has
+     * never been connected to its physical camera systems and does not
+     * know how many microcameras it contains. We can check the current
+     * connection status and create a connection using the following code */
+    /* Now if we re-query the number of microcameras in the camera system,
+     * we should see the correct number instead of a 0 */
+    myMantis.numMCams = getCameraNumberOfMCams(myMantis);
+    printf("Camera system %u contains %u microcameras\n",
+           myMantis.camID,
+           myMantis.numMCams);
+
+    /* We update the entry in our ACOS_CAMERA list to use later */
+
     /* Check if the camera is receiving frame data from the physical
      * camera system (this should be off by default for a new camera object)
      * and tell the camera to start receiving data if needed */
