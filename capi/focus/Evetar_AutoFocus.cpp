@@ -43,12 +43,8 @@ void newMCamCallback(MICRO_CAMERA mcam, void* data)
  **/
 void mcamFrameCallback(FRAME frame, void* data)
 {
-    //printf("Received a frame for microcamera %u with timestamp %lu\n",
-          // frame.m_metadata.m_camId,
-           //frame.m_metadata.m_timestamp);
            ; //do nothing
 }
-
 
 
 
@@ -86,77 +82,108 @@ int main()
     frameCB.f = mcamFrameCallback;
     frameCB.data = NULL;
     setMCamFrameCallback(frameCB);
-    MICRO_CAMERA myMCam = mcamList[0];
-
-
+    //MICRO_CAMERA myMCam = mcamList[0];
 
 
     /* now if we check our list, we should see a populated list
      * of MICRO_CAMERA objects */
     for( int i = 0; i < numMCams; i++ ){
         printf("Found mcam with ID %u\n", mcamList[i].mcamID);
-    }
-    if( !startMCamStream(myMCam, 11001) ){
-        printf("Failed to start streaming mcam %u\n", myMCam.mcamID);
+        // Star the stream for each Mcam in the list
+        if( !startMCamStream(mcamList[i], 11001+i) ){
+        printf("Failed to start streaming mcam %u\n", mcamList[i].mcamID);
         exit(0);
+        }
     }
-    setMCamStreamFilter(myMCam, 11001, ATL_SCALE_MODE_HD);
-    //Bring Mcam focus to near
-    //sleep(10);
-    setMCamFocusNear(myMCam, 0);
-    sleep(3);
     
-    double metric[23] = {0};
-    double metprev = 0;
-    double localbestmetric[1] = {0};
-    double globalbestmetric[1] = {0};
-    int globalbestpos = 0;
-    int step = 100;
-    // Loop through the images
-    for ( int i = 0; i <= 22; i++ ){
-        cout << "Current Position: "+to_string(i*step) << "\n";
-        setMCamFocusFar(myMCam, step);
-        sleep(1.5);
-        FRAME frame = grabMCamFrame(11001, 1.0 );
-        if (!saveMCamFrame(frame, "focustmp")){
-            printf("Unable to save frame\n");
-            }
-        Mat loaded, edge;
-        loaded = imread("focustmp.jpeg",1);
-        //loaded = Mat wrapped(1080, 1920, CV_8UC1, reinterpret_cast<int>(frame.m_image), Mat::AUTO_STEP);
-        int edgeThresh = 1;
-        int imgsize = 3840*2160;
-        Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
-        metric[i+1] = cv::sum( edge )[0]/imgsize;
-        cout << "Current metric value: "+to_string(metric[i]) << "\n";
-        //imshow("Frame!",edge);
-        //waitKey(1000);
-        
-        if ( metric[i+1] > metric[i]){
-            cout << "metric value increased" << "\n";
-            
-            localbestmetric[1] = metric[i+1];
-            //If the local best value is greater the the current global best, update the global best to the current value and position
-                if ( localbestmetric[1] > globalbestmetric[1] ){
-                cout << "Global best updated" << "\n";
-                globalbestmetric[1] = localbestmetric[1];
-                globalbestpos = i+1;            
-            }
-        }   
+    /* We only want to stream HD frame */
+    for( int i = 0; i < numMCams; i++ ){
+    setMCamStreamFilter(mcamList[i], 11001+i, ATL_SCALE_MODE_HD);
     }
-    //sleep(10);
-    setMCamFocusNear(myMCam, 0);
+    
+    /* Bring each Mcam to near focus*/
+    for( int i = 0; i < numMCams; i++ ){
+    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    }
+    sleep(1);
+    int step = 100; //Doing a focus sweep with 100 step increments
+    int numiter = 2300/step;
+    double metric[numMCams] = {0};
+    double metricprev[numMCams] = {0};
+    double localbestmetric[numMCams] = {0};
+    double globalbestmetric[numMCams] = {0};
+    int globalbestpos[numMCams] = {0};
+    
+    /* Start the focus sweep for each micro camera connected to this tegra*/
+    for ( int i = 0; i <= numiter-1; i++ ){
+        cout << "Current Position: "+to_string(i*step) << "\n";
+        
+        /* Step each motor 100 steps */ 
+        for (int j = 0; j < numMCams; j++){
+            setMCamFocusFar(mcamList[j], step);
+        }
+        
+        sleep(2);
+        
+        
+        for (int j = 0; j < numMCams; j++){
+            int edgeThresh = 1;
+            int imgsize = 1920*1080;
+        /*Ideally we want to get rid of this section and replace the saving and loading with a MantisAPI to OpenCV mat construction*/
+            /**************************************/
+            FRAME frame = grabMCamFrame(11001+j, 1.0 );
+            if (!saveMCamFrame(frame, "focustmp")){
+                printf("Unable to save frame\n");
+                }
+            /**************************************/ 
+        /* The constructor should look something like this, I just couldn't get it to compile*/
+        //loaded(1080, 1920,  CV_8UC1, frame.m_image,  size_t step = AUTO_STEP);
+        
+            Mat loaded,edge;
+            loaded = imread("focustmp.jpeg",1);
+            Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
+            metric[j] = cv::sum( edge )[0]/imgsize;
+            //imshow("Frame",loaded);
+            //waitKey(1000);
+            cout << "Current metric value: "+to_string(metric[j]) << "\n";
+            /* If the metric increased update the best value and position */
+            if ( metric[j] > metricprev[j]){
+            cout << "metric value increased" << "\n";
+            localbestmetric[j] = metric[j];
+            /* If the current metric is the best we've seen yet, update as current best*/
+                if ( localbestmetric[j] > globalbestmetric[j] ){
+                cout << "Global best updated" << "\n";
+                globalbestmetric[j] = localbestmetric[j];
+                globalbestpos[j] = i+1;            
+                }
+            }  
+            metricprev[j] = metric[j]; 
+        }    
+    }
+     /* Bring each Mcam to near focus*/
+    for( int i = 0; i < numMCams; i++ ){
+    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    }
     sleep(4);
     
     //For some reason have to send this command a second time -- Possible error state on motor
-    setMCamFocusNear(myMCam, 0);
+   /* Bring each Mcam to near focus*/
+    for( int i = 0; i < numMCams; i++ ){
+    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    }
+    
     sleep(3);
-    setMCamFocusFar(myMCam, globalbestpos*step);
+    /* Bring each Mcam to best focus position*/
+    for( int i = 0; i < numMCams; i++ ){
+    setMCamFocusFar(mcamList[i], globalbestpos[i]*step);
+    }
     sleep(3);
-    closeMCamFrameReceiver( 11001 );
+    for( int i = 0; i < numMCams; i++ ){
+    closeMCamFrameReceiver( 11001+i );
+    }
     mCamDisconnect(ip, port);
     
-    cout << "Best Focus metric of: " + std::to_string(globalbestmetric[1]) + " at position: " + std::to_string(globalbestpos) << "\n";
+    cout << "Best Focus metric of: " + std::to_string(globalbestmetric[0]) + " at position: " + std::to_string(globalbestpos[0]) << "\n";
     exit(1);
 }
 
