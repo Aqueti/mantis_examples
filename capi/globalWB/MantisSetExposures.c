@@ -224,7 +224,8 @@ int main(int argc, char * argv[])
         	
 
 		// call function pass bool true for enabled
-		if (!setMCamWhiteBalance(mcamList[i], avgWhiteBalance.red, avgWhiteBalance.blue, avgWhiteBalance.green))
+        AtlWhiteBalance wbstr = {avgWhiteBalance.red, avgWhiteBalance.green, avgWhiteBalance.blue};
+		if (!setMCamWhiteBalance(mcamList[i], wbstr))
 		{
 	     		printf("unable to set mcam manually to average white balance\n");
 		} 

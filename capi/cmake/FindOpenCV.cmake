@@ -91,6 +91,7 @@ if(EXISTS "${OpenCV_DIR}")
         set(OpenCV_FOUND_TMP true)
 
         ## Loop over each components
+        message("components: ${OpenCV_FIND_COMPONENTS}")
         foreach(__CVLIB ${OPENCV_LIB_COMPONENTS})
 
                 find_library(OpenCV_${__CVLIB}_LIBRARY_DEBUG NAMES "${__CVLIB}${CVLIB_SUFFIX}d" "lib${__CVLIB}${CVLIB_SUFFIX}d" PATHS "${OpenCV_DIR}/lib" NO_DEFAULT_PATH)

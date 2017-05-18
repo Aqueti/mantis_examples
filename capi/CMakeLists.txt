@@ -4,7 +4,6 @@ project(mantis_examles)
 
 option( MAKE_TESTS "Make Mantis tests" ON )
 option( MAKE_AUTOFOCUS "Make autofocus module" OFF )
-set(SUPERBUILDING OFF CACHE BOOL "Currently Superbuilding")
 
 list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake
@@ -14,20 +13,11 @@ list(APPEND CMAKE_MODULE_PATH
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11")
 
-if(${MAKE_AUTOFOCUS})
-    find_package(OpenCV COMPONENTS core highgui imgcodecs imgproc)
-    if(NOT "${OpenCV_FOUND}" AND NOT ${SUPERBUILDING})
-        message("superbuilding now")
-        set(SUPERBUILDING ON)
-        include(ExternalProject)
-        include(Superbuild.cmake)
-        return()
-    endif()
-endif()
-
 if(${MAKE_TESTS})
     find_package(MantisAPI REQUIRED)
     find_package(Threads REQUIRED)
+
+    include_directories(${CMAKE_INSTALL_PREFIX}/include ${MantisAPI_INCLUDE_DIR})
 
     set(EXAMPLE_TARGETS
         HelloMantis
@@ -107,22 +97,18 @@ if(${MAKE_TESTS})
 endif()
 
 if(${MAKE_AUTOFOCUS})
-    message("opencv found: ${OpenCV_FOUND}")
-    if(${OpenCV_FOUND})
-        message("opencv: ${OpenCV_INCLUDE_DIR}")
-        message("include: ${CMAKE_INCLUDE_PATH}")
-        include_directories(include ${OpenCV_INCLUDE_DIR})
-        include_directories(${CMAKE_INSTALL_PREFIX}/include)
-        add_executable(Evetar_AutoFocus
-            focus/Evetar_AutoFocus.cpp
-        )
-        target_link_libraries(Evetar_AutoFocus
-            ${MantisAPI_LIBRARIES}
-            ${OpenCV_LIBS}
-            ${CMAKE_THREAD_LIBS_INIT}
-        )
-        list(APPEND EXAMPLE_TARGETS Evetar_AutoFocus)
-    endif(${OpenCV_FOUND})
+    set(OpenCV_DIR /usr/local/share/OpenCV)
+    find_package(OpenCV REQUIRED COMPONENTS core highgui imgcodecs imgproc)
+    include_directories(include ${OpenCV_INCLUDE_DIR})
+    add_executable(Evetar_AutoFocus
+        focus/Evetar_AutoFocus.cpp
+    )
+    target_link_libraries(Evetar_AutoFocus
+        ${MantisAPI_LIBRARIES}
+        ${OpenCV_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
+    )
+    list(APPEND EXAMPLE_TARGETS Evetar_AutoFocus)
 endif(${MAKE_AUTOFOCUS})
 
 install(TARGETS ${EXAMPLE_TARGETS}
