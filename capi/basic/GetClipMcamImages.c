@@ -136,12 +136,28 @@ int main(int argc, char * argv[])
      ****************************************************************/
     ACOS_CAMERA myMantis = cameraList[0];
 
-    /* First, get the microcameras for the Mantis so we know what to request.
+    /* If the camera struct reports 0 microcameras, then it has never been
+     * connected before and we must establish a connection to retrieve the
+     * correct number of microcameras */
+    if( myMantis.numMCams == 0 ){
+        if( !toggleConnection(myMantis, true, 5000) ){
+            printf("Failed to establish connection for camera %u!\n",
+                   myMantis.camID);
+            return 0;
+        } else{
+            printf("Camera %u is now connected to its physical camera system\n",
+                   myMantis.camID);
+            sleep(1);
+        }
+        myMantis.numMCams = getCameraNumberOfMCams(myMantis);
+    }
+
+    /* Next, get the microcameras for the Mantis so we know what to request.
      * Note: the ACOS_CAMERA struct in the returned ACOS_CLIP struct should be 
      * identical to the one used in the start/stop recording commands
      * unless the struct was corrupted by unsafe use of the API */
     MICRO_CAMERA mcamList[myMantis.numMCams];
-    getCameraMCamList(myMantis, mcamList);
+    getCameraMCamList(myMantis, mcamList, myMantis.numMCams);
 
     /* if a specific mcam was chosen, remove the rest form the list */
     int numMCams = (mcamID == 0) ? myMantis.numMCams : 1;
@@ -188,7 +204,10 @@ int main(int argc, char * argv[])
                         dir,
                         frame.m_metadata.m_camId,
                         frame.m_metadata.m_timestamp);
-                printf("Saving image %s, mcam:%u, timestamp: %lu\n", fileName, frame.m_metadata.m_camId, frame.m_metadata.m_timestamp);
+                printf("Saving image %s, mcam:%u, timestamp: %lu\n", 
+                       fileName, 
+                       frame.m_metadata.m_camId, 
+                       frame.m_metadata.m_timestamp);
                 saveMCamFrame(frame, fileName);
 
                 /* return the frame buffer pointer to prevent memory leaks */

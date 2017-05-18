@@ -12,11 +12,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
 #include <unistd.h>
 #include <math.h>
 
-#include "opencv2/core/mat.hpp"
 #include "opencv2/core/utility.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/imgcodecs.hpp"
@@ -26,6 +25,7 @@
 #include <iostream>
 
 #include "mantis/MantisAPI.h"
+
 
 using namespace cv;
 using namespace std;
@@ -46,13 +46,6 @@ void mcamFrameCallback(FRAME frame, void* data)
            ; //do nothing
 }
 
-//double calculateFocusMetric(uint8_t* img){
-    /* Casting from image buffer goes here */
-   // Mat edge;
-   // Canny(img, edge, edgeThresh, edgeThresh*100, 3);
-    //metric = cv::sum( edge )[0]/imgsize;
-   // return metric;
-//}
 
 
 /**
@@ -61,10 +54,41 @@ void mcamFrameCallback(FRAME frame, void* data)
  
 int main()
 {
-    char ip[24] = "10.0.0.152";
+//    char ip[24] = "10.0.0.152";
+
+    char ip[10][24] = {{"10.0.1.1"},{"10.0.1.2"},{"10.0.1.3"},{"10.0.1.4"},{"10.0.1.5"},{"10.0.1.6"},{"10.0.1.7"},{"10.0.1.8"},{"10.0.1.9"},{"10.0.1.10"}};
+
+
+    //char ip[2][24] = {{"10.0.1.1"},{"10.0.1.2"}};
+
     int port = 9999;
-    mCamConnect(ip, port);
-    initMCamFrameReceiver( 13001, 1 );
+
+
+    int total=sizeof(ip);
+    int numIps=total/(sizeof(ip[0]));
+
+
+
+
+    for( int ii=0; ii<numIps; ii++){
+    /* Connect directly to the Tegra hosting the microcamera.
+     * If the IP/port of the desired microcamera is unknown, it
+     * can be found using the getCameraMcamList method shown in 
+     * the MantisGetFrames example, which returns MICRO_CAMERA 
+     * structs for each microcamera in a Mantis system. These 
+     * structs contain the IP/port of the Tegras which host them */
+	printf("About to connect to  ip %s on port %d \n", ip[ii],port);
+        mCamConnect(ip[ii], port);
+	printf("Connected \n");
+
+	}
+
+   // mCamConnect(ip, port);
+
+
+
+
+    //initMCamFrameReceiver( 11001, 1 );
 
     /* get cameras from API */
     int numMCams = getNumberOfMCams();
@@ -96,8 +120,11 @@ int main()
      * of MICRO_CAMERA objects */
     for( int i = 0; i < numMCams; i++ ){
         printf("Found mcam with ID %u\n", mcamList[i].mcamID);
+
+        initMCamFrameReceiver( 13000+i, 1 );
+
         // Star the stream for each Mcam in the list
-        if( !startMCamStream(mcamList[i], 13001+i) ){
+        if( !startMCamStream(mcamList[i], 13000+i) ){
         printf("Failed to start streaming mcam %u\n", mcamList[i].mcamID);
         exit(0);
         }
@@ -105,14 +132,14 @@ int main()
     
     /* We only want to stream HD frame */
     for( int i = 0; i < numMCams; i++ ){
-    setMCamStreamFilter(mcamList[i], 13001+i, ATL_SCALE_MODE_HD);
+    setMCamStreamFilter(mcamList[i], 13000+i, ATL_SCALE_MODE_HD);
     }
     
     /* Bring each Mcam to near focus*/
     for( int i = 0; i < numMCams; i++ ){
-    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    setMCamFocusNear(mcamList[i], 2300); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
     }
-    sleep(1);
+    sleep(15);
     int step = 100; //Doing a focus sweep with 100 step increments
     int numiter = 2300/step;
     double metric[numMCams] = {0};
@@ -130,7 +157,7 @@ int main()
             setMCamFocusFar(mcamList[j], step);
         }
         
-        sleep(1);
+        sleep(4);
         
         
         for (int j = 0; j < numMCams; j++){
@@ -138,28 +165,20 @@ int main()
             int imgsize = 1920*1080;
         /*Ideally we want to get rid of this section and replace the saving and loading with a MantisAPI to OpenCV mat construction*/
             /**************************************/
-            FRAME frame = grabMCamFrame(13001+j, 1.0 );
-            //if (!saveMCamFrame(frame, "focustmp")){
-                //printf("Unable to save frame\n");
-                //}
+            FRAME frame = grabMCamFrame(13000+j, 1.0 );
+            if (!saveMCamFrame(frame, "focustmp")){
+                printf("Unable to save frame\n");
+                }
             /**************************************/ 
         /* The constructor should look something like this, I just couldn't get it to compile*/
-            size_t step=CV_AUTO_STEP;
-            Mat rawdata = Mat(1, frame.m_metadata.m_size ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
-            Mat loaded = imdecode(rawdata,1);
-            if (loaded.data==NULL){
-                cerr << "Failed to decode data" <<"\n";
-            }
-            
-            //imshow("Frame",loaded);
-            //waitKey(1000);
-            Mat edge;
-            //loaded = imread("focustmp.jpeg",1);
+        //loaded(1080, 1920,  CV_8UC1, frame.m_image,  size_t step = AUTO_STEP);
+        
+            Mat loaded,edge;
+            loaded = imread("focustmp.jpeg",1);
             Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
             metric[j] = cv::sum( edge )[0]/imgsize;
-           
-           
-            
+            //imshow("Frame",loaded);
+            //waitKey(1000);
             cout << "Current metric value: "+to_string(metric[j]) << "\n";
             /* If the metric increased update the best value and position */
             if ( metric[j] > metricprev[j]){
@@ -174,34 +193,44 @@ int main()
             }  
             metricprev[j] = metric[j]; 
         }    
-    }/*End Coarse focus sweep*/
-    
-    
-     /* Bring each Mcam to near focus*/
-    for( int i = 0; i < numMCams; i++ ){
-    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
     }
-    sleep(3);
+     /* Bring each Mcam to near focus*/
+    //for( int i = 0; i < numMCams; i++ ){
+    //setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    //}
+    //sleep(4);
     
     //For some reason have to send this command a second time -- Possible error state on motor
    /* Bring each Mcam to near focus*/
     for( int i = 0; i < numMCams; i++ ){
-    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    setMCamFocusNear(mcamList[i], 2300); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
     }
     
-    sleep(3);
+    sleep(20);
     /* Bring each Mcam to best focus position*/
     for( int i = 0; i < numMCams; i++ ){
     setMCamFocusFar(mcamList[i], globalbestpos[i]*step);
     }
-    sleep(4);
+    sleep(20);
     for( int i = 0; i < numMCams; i++ ){
-    closeMCamFrameReceiver( 13001+i );
+    sleep(4);
+    closeMCamFrameReceiver( 13000+i );
     }
-    mCamDisconnect(ip, port);
+
+
+
+/* Disconnect from tegras */
+    for( int ii=0; ii<numIps; ii++){
+    /* Connect directly to the Tegra hosting the microcamera.
+     * If the IP/port of the desired microcamera is unknown, it
+     * can be found using the getCameraMcamList method shown in 
+     * the MantisGetFrames example, which returns MICRO_CAMERA 
+     * structs for each microcamera in a Mantis system. These 
+     * structs contain the IP/port of the Tegras which host them */
+     mCamDisconnect(ip[ii], port);
+	}
     
     cout << "Best Focus metric of: " + std::to_string(globalbestmetric[0]) + " at position: " + std::to_string(globalbestpos[0]) << "\n";
     exit(1);
-    destroyAllWindows();
 }
 
