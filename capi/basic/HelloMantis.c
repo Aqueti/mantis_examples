@@ -6,8 +6,6 @@
  * Sample code that connects to a V2 system that manages an unknown number
  * of Mantis camera systems.
  *
- * management software
- *
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
