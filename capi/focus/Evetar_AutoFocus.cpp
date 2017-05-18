@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <math.h>
 
+#include "opencv2/core/mat.hpp"
 #include "opencv2/core/utility.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/imgcodecs.hpp"
@@ -25,7 +26,6 @@
 #include <iostream>
 
 #include "mantis/MantisAPI.h"
-
 
 using namespace cv;
 using namespace std;
@@ -46,6 +46,13 @@ void mcamFrameCallback(FRAME frame, void* data)
            ; //do nothing
 }
 
+//double calculateFocusMetric(uint8_t* img){
+    /* Casting from image buffer goes here */
+   // Mat edge;
+   // Canny(img, edge, edgeThresh, edgeThresh*100, 3);
+    //metric = cv::sum( edge )[0]/imgsize;
+   // return metric;
+//}
 
 
 /**
@@ -57,7 +64,7 @@ int main()
     char ip[24] = "10.0.0.152";
     int port = 9999;
     mCamConnect(ip, port);
-    initMCamFrameReceiver( 11001, 1 );
+    initMCamFrameReceiver( 13001, 1 );
 
     /* get cameras from API */
     int numMCams = getNumberOfMCams();
@@ -90,7 +97,7 @@ int main()
     for( int i = 0; i < numMCams; i++ ){
         printf("Found mcam with ID %u\n", mcamList[i].mcamID);
         // Star the stream for each Mcam in the list
-        if( !startMCamStream(mcamList[i], 11001+i) ){
+        if( !startMCamStream(mcamList[i], 13001+i) ){
         printf("Failed to start streaming mcam %u\n", mcamList[i].mcamID);
         exit(0);
         }
@@ -98,7 +105,7 @@ int main()
     
     /* We only want to stream HD frame */
     for( int i = 0; i < numMCams; i++ ){
-    setMCamStreamFilter(mcamList[i], 11001+i, ATL_SCALE_MODE_HD);
+    setMCamStreamFilter(mcamList[i], 13001+i, ATL_SCALE_MODE_HD);
     }
     
     /* Bring each Mcam to near focus*/
@@ -123,7 +130,7 @@ int main()
             setMCamFocusFar(mcamList[j], step);
         }
         
-        sleep(2);
+        sleep(1);
         
         
         for (int j = 0; j < numMCams; j++){
@@ -131,20 +138,28 @@ int main()
             int imgsize = 1920*1080;
         /*Ideally we want to get rid of this section and replace the saving and loading with a MantisAPI to OpenCV mat construction*/
             /**************************************/
-            FRAME frame = grabMCamFrame(11001+j, 1.0 );
-            if (!saveMCamFrame(frame, "focustmp")){
-                printf("Unable to save frame\n");
-                }
+            FRAME frame = grabMCamFrame(13001+j, 1.0 );
+            //if (!saveMCamFrame(frame, "focustmp")){
+                //printf("Unable to save frame\n");
+                //}
             /**************************************/ 
         /* The constructor should look something like this, I just couldn't get it to compile*/
-        //loaded(1080, 1920,  CV_8UC1, frame.m_image,  size_t step = AUTO_STEP);
-        
-            Mat loaded,edge;
-            loaded = imread("focustmp.jpeg",1);
-            Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
-            metric[j] = cv::sum( edge )[0]/imgsize;
+            size_t step=CV_AUTO_STEP;
+            Mat rawdata = Mat(1, frame.m_metadata.m_size ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
+            Mat loaded = imdecode(rawdata,1);
+            if (loaded.data==NULL){
+                cerr << "Failed to decode data" <<"\n";
+            }
+            
             //imshow("Frame",loaded);
             //waitKey(1000);
+            Mat edge;
+            //loaded = imread("focustmp.jpeg",1);
+            Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
+            metric[j] = cv::sum( edge )[0]/imgsize;
+           
+           
+            
             cout << "Current metric value: "+to_string(metric[j]) << "\n";
             /* If the metric increased update the best value and position */
             if ( metric[j] > metricprev[j]){
@@ -159,12 +174,14 @@ int main()
             }  
             metricprev[j] = metric[j]; 
         }    
-    }
+    }/*End Coarse focus sweep*/
+    
+    
      /* Bring each Mcam to near focus*/
     for( int i = 0; i < numMCams; i++ ){
     setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
     }
-    sleep(4);
+    sleep(3);
     
     //For some reason have to send this command a second time -- Possible error state on motor
    /* Bring each Mcam to near focus*/
@@ -177,13 +194,14 @@ int main()
     for( int i = 0; i < numMCams; i++ ){
     setMCamFocusFar(mcamList[i], globalbestpos[i]*step);
     }
-    sleep(3);
+    sleep(4);
     for( int i = 0; i < numMCams; i++ ){
-    closeMCamFrameReceiver( 11001+i );
+    closeMCamFrameReceiver( 13001+i );
     }
     mCamDisconnect(ip, port);
     
     cout << "Best Focus metric of: " + std::to_string(globalbestmetric[0]) + " at position: " + std::to_string(globalbestpos[0]) << "\n";
     exit(1);
+    destroyAllWindows();
 }
 
