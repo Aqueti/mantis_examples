@@ -31,7 +31,6 @@ if(WIN32)
 else(WIN32)
     find_library(MantisAPI_LIBRARIES NAMES MantisAPI
       PATHS
-      ${CMAKE_INSTALL_PREFIX}/lib
       ${CMAKE_LIB_PATH}
       /usr/lib
       /usr/lib/mantis
