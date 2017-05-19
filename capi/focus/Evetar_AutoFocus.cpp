@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
 #include <unistd.h>
 #include <math.h>
 
@@ -125,6 +125,7 @@ int main()
     double globalbestmetric[numMCams] = {0};
     int globalbestpos[numMCams] = {0};
     int finalbestpos[numMCams] = {0};
+    bool stopflag[numMCams] = {false};
     /* Start the focus sweep for each micro camera connected to this tegra*/
     for ( int i = 0; i <= numiter-1; i++ ){
         cout << "Current Position: "+to_string(i*step) << "\n";
@@ -187,9 +188,9 @@ int main()
     sleep(3);
     /* Bring each Mcam to 100 steps before best focus position*/
     for( int i = 0; i < numMCams; i++ ){
-    int initpos = 2200;
-    int nstep = initpos - globalbestpos[i]*step;
-    setMCamFocusNear(mcamList[i], nstep);
+        int initpos = 2200;
+        int nstep = initpos - globalbestpos[i]*step;
+        setMCamFocusNear(mcamList[i], nstep);
     }
     /* recalculate the metric */
     for (int j = 0; j < numMCams; j++){
@@ -207,11 +208,15 @@ int main()
      }
     /* Initiate a fine sweep */ 
     for (int i=0; i<20; i++){
-        cout << to_string(i) << "\n";
+        //cout << to_string(i) << "\n";
         /* Step each motor 10 step */
         for (int j = 0; j < numMCams; j++){
-            int stepfine = 10;
-            setMCamFocusNear(mcamList[j], stepfine);
+            /* Only step if stopflag is flase */
+            if (!stopflag[j]){
+                int stepfine = 10;
+                setMCamFocusNear(mcamList[j], stepfine);
+            }
+            
         }
         
         sleep(1.25);
@@ -229,14 +234,15 @@ int main()
             }
             /* Calculate the focus metric from the image*/
             metric[j] = calculateFocusMetric(loaded);
-         }   
-         //if (metric[i]<metricprev[i]){
-            /* Step back 10 steps and break */
-            //for (int j = 0; j < numMCams; j++){
-                //setMCamFocusFar(mcamList[j], 10);
-            //}
-            //break;
-         //}
+            
+            if (metric[j]>=globalbestmetric[j] && metricprev[j]>=metric[j]){
+                /* Step back 10 steps stop focusing this camera */
+                cout << "Best focus acheived" << "\n";
+                setMCamFocusFar(mcamList[j], 10);
+                stopflag[j]=true;
+            }
+            metricprev[j] = metric[j];
+         }
     }
     /* Disconnect the camera to clear ports */
     sleep(4);
@@ -245,8 +251,6 @@ int main()
     }
     mCamDisconnect(ip, port);
     
-    cout << "Best Focus metric of: " + std::to_string(globalbestmetric[0]) + " at position: " + std::to_string(finalbestpos[0]) << "\n";
     exit(1);
-    destroyAllWindows();
 }
 
