@@ -46,13 +46,17 @@ void mcamFrameCallback(FRAME frame, void* data)
            ; //do nothing
 }
 
-//double calculateFocusMetric(uint8_t* img){
-    /* Casting from image buffer goes here */
-   // Mat edge;
-   // Canny(img, edge, edgeThresh, edgeThresh*100, 3);
-    //metric = cv::sum( edge )[0]/imgsize;
-   // return metric;
-//}
+/**
+ * \ Function that computes the focus metric from an image
+ **/
+double calculateFocusMetric(Mat img){
+    Mat edge;
+    int edgeThresh = 1;
+    int imgsize = img.rows*img.cols;
+    Canny(img, edge, edgeThresh, edgeThresh*100, 3);
+    double metric = cv::sum( edge )[0]/imgsize;
+    return metric;
+}
 
 
 /**
@@ -114,13 +118,13 @@ int main()
     }
     sleep(1);
     int step = 100; //Doing a focus sweep with 100 step increments
-    int numiter = 2300/step;
+    int numiter = 2200/step;
     double metric[numMCams] = {0};
     double metricprev[numMCams] = {0};
     double localbestmetric[numMCams] = {0};
     double globalbestmetric[numMCams] = {0};
     int globalbestpos[numMCams] = {0};
-    
+    int finalbestpos[numMCams] = {0};
     /* Start the focus sweep for each micro camera connected to this tegra*/
     for ( int i = 0; i <= numiter-1; i++ ){
         cout << "Current Position: "+to_string(i*step) << "\n";
@@ -130,34 +134,25 @@ int main()
             setMCamFocusFar(mcamList[j], step);
         }
         
-        sleep(1);
+        sleep(1.25);
         
         
         for (int j = 0; j < numMCams; j++){
-            int edgeThresh = 1;
-            int imgsize = 1920*1080;
-        /*Ideally we want to get rid of this section and replace the saving and loading with a MantisAPI to OpenCV mat construction*/
-            /**************************************/
+            //int edgeThresh = 1;
+            
+            /* This is how to pass the frame pointer in to openCV*/
+     
             FRAME frame = grabMCamFrame(13001+j, 1.0 );
-            //if (!saveMCamFrame(frame, "focustmp")){
-                //printf("Unable to save frame\n");
-                //}
-            /**************************************/ 
-        /* The constructor should look something like this, I just couldn't get it to compile*/
+            int imgsize = frame.m_metadata.m_size;
             size_t step=CV_AUTO_STEP;
-            Mat rawdata = Mat(1, frame.m_metadata.m_size ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
+            Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
             Mat loaded = imdecode(rawdata,1);
             if (loaded.data==NULL){
                 cerr << "Failed to decode data" <<"\n";
             }
             
-            //imshow("Frame",loaded);
-            //waitKey(1000);
-            Mat edge;
-            //loaded = imread("focustmp.jpeg",1);
-            Canny(loaded, edge, edgeThresh, edgeThresh*100, 3);
-            metric[j] = cv::sum( edge )[0]/imgsize;
-           
+            /* Calculate the focus metric from the image*/
+            metric[j] = calculateFocusMetric(loaded);
            
             
             cout << "Current metric value: "+to_string(metric[j]) << "\n";
@@ -178,29 +173,79 @@ int main()
     
     
      /* Bring each Mcam to near focus*/
-    for( int i = 0; i < numMCams; i++ ){
-    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
-    }
-    sleep(3);
+    //for( int i = 0; i < numMCams; i++ ){
+    //setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    //}
+    //sleep(3);
     
     //For some reason have to send this command a second time -- Possible error state on motor
    /* Bring each Mcam to near focus*/
-    for( int i = 0; i < numMCams; i++ ){
-    setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
-    }
+    //for( int i = 0; i < numMCams; i++ ){
+    //setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
+    //}
     
     sleep(3);
-    /* Bring each Mcam to best focus position*/
+    /* Bring each Mcam to 100 steps before best focus position*/
     for( int i = 0; i < numMCams; i++ ){
-    setMCamFocusFar(mcamList[i], globalbestpos[i]*step);
+    int initpos = 2200;
+    int nstep = initpos - globalbestpos[i]*step;
+    setMCamFocusNear(mcamList[i], nstep);
     }
+    /* recalculate the metric */
+    for (int j = 0; j < numMCams; j++){
+            /* This is how to pass the frame pointer in to openCV*/
+            FRAME frame = grabMCamFrame(13001+j, 1.0 );
+            int imgsize = frame.m_metadata.m_size;
+            size_t step=CV_AUTO_STEP;
+            Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
+            Mat loaded = imdecode(rawdata,1);
+            if (loaded.data==NULL){
+                cerr << "Failed to decode data" <<"\n";
+            }
+            /* Calculate the focus metric from the image*/
+            metricprev[j] = calculateFocusMetric(loaded);
+     }
+    /* Initiate a fine sweep */ 
+    for (int i=0; i<20; i++){
+        cout << to_string(i) << "\n";
+        /* Step each motor 10 step */
+        for (int j = 0; j < numMCams; j++){
+            int stepfine = 10;
+            setMCamFocusNear(mcamList[j], stepfine);
+        }
+        
+        sleep(1.25);
+        
+        /* Recalculate the focus metric */
+        for (int j = 0; j < numMCams; j++){
+            /* This is how to pass the frame pointer in to openCV*/
+            FRAME frame = grabMCamFrame(13001+j, 1.0 );
+            int imgsize = frame.m_metadata.m_size;
+            size_t step=CV_AUTO_STEP;
+            Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
+            Mat loaded = imdecode(rawdata,1);
+            if (loaded.data==NULL){
+                cerr << "Failed to decode data" <<"\n";
+            }
+            /* Calculate the focus metric from the image*/
+            metric[j] = calculateFocusMetric(loaded);
+         }   
+         //if (metric[i]<metricprev[i]){
+            /* Step back 10 steps and break */
+            //for (int j = 0; j < numMCams; j++){
+                //setMCamFocusFar(mcamList[j], 10);
+            //}
+            //break;
+         //}
+    }
+    /* Disconnect the camera to clear ports */
     sleep(4);
     for( int i = 0; i < numMCams; i++ ){
     closeMCamFrameReceiver( 13001+i );
     }
     mCamDisconnect(ip, port);
     
-    cout << "Best Focus metric of: " + std::to_string(globalbestmetric[0]) + " at position: " + std::to_string(globalbestpos[0]) << "\n";
+    cout << "Best Focus metric of: " + std::to_string(globalbestmetric[0]) + " at position: " + std::to_string(finalbestpos[0]) << "\n";
     exit(1);
     destroyAllWindows();
 }
