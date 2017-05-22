@@ -51,29 +51,143 @@ void mcamFrameCallback(FRAME frame, void* data)
  **/
 double calculateFocusMetric(Mat img){
     Mat edge;
-    int edgeThresh = 1;
+    int edgeThresh = 100;
     int imgsize = img.rows*img.cols;
-    Canny(img, edge, edgeThresh, edgeThresh*100, 3);
+    Canny(img, edge, edgeThresh, edgeThresh*2, 3);
     double metric = cv::sum( edge )[0]/imgsize;
     return metric;
 }
 
+/**
+ * \brief prints the command line options
+ **/
+void printHelp()
+{
+   printf("McamStream Demo Application\n");
+   printf("Usage:\n");
+   printf("\t-c FILE   Host file for microcameras (default sync.cfg) \n");
+   printf("\t-port <port> port connect to (default 9999)\n\n");
+}
+
+int getIpsFromSyncFile(char fileName[], char ip[10][24])
+{
+
+ //   sleep(5);
+      printf("i think the filename is %s \n",fileName);
+ //   fileName = "sync.cfg"; /* should check that argc > 1 */
+      FILE* file = fopen(fileName, "r"); /* should check the result */
+    char line[256];
+    int d;
+    int currentCam=0;
+    int currentChar=0;
+    int readingIP=0;
+  //  char ip[10][24];
+    memset( ip, '\0', sizeof(ip) -1 );
+    int numIps;
+    int port = 9999;
+    printf("in readsync now \n");
+    while (fgets(line, sizeof(line), file)) {
+        /* note that fgets don't strip the terminating \n, checking its
+           presence would allow to handle lines longer that sizeof(line) */
+        printf("%s", line); 
+
+    	for(d=0;d<strlen(line);d++) {
+    					
+		if(line[d] == ':'){
+			printf("I found the colon \n");
+			readingIP=0;
+		}
+		if(readingIP == 1){
+			ip[currentCam][currentChar]=line[d];
+			currentChar++;
+		}
+		if(line[d] == '@'){
+    	    		printf("I found the ampersand \n");
+			readingIP=1;
+		}
+
+    	}
+	currentCam++;
+	currentChar=0;
+
+
+        }
+       /* may check feof here to make a difference between eof and io failure -- network
+       timeout for instance */
+    numIps=currentCam;
+    for( int ii=0; ii<numIps; ii++){
+    /* Connect directly to the Tegra hosting the microcamera.
+     * If the IP/port of the desired microcamera is unknown, it
+     * can be found using the getCameraMcamList method shown in 
+     * the MantisGetFrames example, which returns MICRO_CAMERA 
+     * structs for each microcamera in a Mantis system. These 
+     * structs contain the IP/port of the Tegras which host them */
+	printf("About to connect to  ip %s on port %d \n", ip[ii],port);
+        mCamConnect(ip[ii], port);
+	printf("Connected \n");
+
+	}
+
+    fclose(file);
+return numIps;  }
 
 /**
  * \ Main Function that steps the focus motors and computes a focus metric
  **/
  
-int main()
+int main(int argc, char * argv[])
 {
-    char ip[24] = "10.0.0.152";
+    char ip[10][24] = {{"10.0.1.1"},{"10.0.1.2"},{"10.0.1.3"},{"10.0.1.4"},{"10.0.1.5"},{"10.0.1.6"},{"10.0.1.7"},{"10.0.1.8"},{"10.0.1.9"},{"10.0.1.10"}};  
+    char syncfilename[100]="sync.cfg";
+    int numIps=0;
     int port = 9999;
-    mCamConnect(ip, port);
-    initMCamFrameReceiver( 13001, 1 );
 
+    for( int i = 1; i < argc; i++ ){
+       if( !strcmp(argv[i],"-c") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+	  printf("argv is %s and syncfilename is %s \n",argv[i],syncfilename);
+          int length = strlen(argv[i]);
+	  printf("length is %i \n",length);
+          if( length < 100 ){
+
+             strncpy(syncfilename, argv[i], length);
+             //ip[0][length] = 0;
+          }
+       } else if( !strcmp(argv[i],"-port") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+          int length = strlen(argv[i]);
+          port = atoi(argv[i]);
+       } else{
+          printHelp();
+          return 0;
+       }
+    }
+
+    numIps=getIpsFromSyncFile(syncfilename, ip);
+  int portbase=13000;
+
+  //  char ip[24] = "10.0.0.174";
+  //  int port = 9999;
+  //  mCamConnect(ip, port);
+  //  initMCamFrameReceiver( 13001, 1 );
+  //  initMCamFrameReceiver( 13002, 1 );
     /* get cameras from API */
     int numMCams = getNumberOfMCams();
     printf("API reported that there are %d microcameras available\n", numMCams);
     MICRO_CAMERA mcamList[numMCams];
+
+
+
+    for( int i = 0; i < numMCams; i++ )
+	{
+	initMCamFrameReceiver(portbase+i,1);
+	}
 
     /* create new microcamera callback struct */
     NEW_MICRO_CAMERA_CALLBACK mcamCB;
@@ -101,7 +215,7 @@ int main()
     for( int i = 0; i < numMCams; i++ ){
         printf("Found mcam with ID %u\n", mcamList[i].mcamID);
         // Star the stream for each Mcam in the list
-        if( !startMCamStream(mcamList[i], 13001+i) ){
+        if( !startMCamStream(mcamList[i], portbase+i) ){
         printf("Failed to start streaming mcam %u\n", mcamList[i].mcamID);
         exit(0);
         }
@@ -109,7 +223,7 @@ int main()
     
     /* We only want to stream HD frame */
     for( int i = 0; i < numMCams; i++ ){
-    setMCamStreamFilter(mcamList[i], 13001+i, ATL_SCALE_MODE_HD);
+    setMCamStreamFilter(mcamList[i], portbase+i, ATL_SCALE_MODE_HD);
     }
     
     /* Bring each Mcam to near focus*/
@@ -143,7 +257,7 @@ int main()
             
             /* This is how to pass the frame pointer in to openCV*/
      
-            FRAME frame = grabMCamFrame(13001+j, 1.0 );
+            FRAME frame = grabMCamFrame(portbase+j, 1.0 );
             int imgsize = frame.m_metadata.m_size;
             size_t step=CV_AUTO_STEP;
             Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
@@ -195,7 +309,7 @@ int main()
     /* recalculate the metric */
     for (int j = 0; j < numMCams; j++){
             /* This is how to pass the frame pointer in to openCV*/
-            FRAME frame = grabMCamFrame(13001+j, 1.0 );
+            FRAME frame = grabMCamFrame(portbase+j, 1.0 );
             int imgsize = frame.m_metadata.m_size;
             size_t step=CV_AUTO_STEP;
             Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
@@ -224,7 +338,7 @@ int main()
         /* Recalculate the focus metric */
         for (int j = 0; j < numMCams; j++){
             /* This is how to pass the frame pointer in to openCV*/
-            FRAME frame = grabMCamFrame(13001+j, 1.0 );
+            FRAME frame = grabMCamFrame(portbase+j, 1.0 );
             int imgsize = frame.m_metadata.m_size;
             size_t step=CV_AUTO_STEP;
             Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
@@ -247,9 +361,10 @@ int main()
     /* Disconnect the camera to clear ports */
     sleep(4);
     for( int i = 0; i < numMCams; i++ ){
-    closeMCamFrameReceiver( 13001+i );
+    closeMCamFrameReceiver( portbase+i );
+     mCamDisconnect(ip[i], port);
     }
-    mCamDisconnect(ip, port);
+
     
     exit(1);
 }
