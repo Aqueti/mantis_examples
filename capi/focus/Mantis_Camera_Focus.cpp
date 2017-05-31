@@ -57,10 +57,11 @@ pair<double,Mat> calculateFocusMetric(Mat img){
 
 bool processing = false;
 double metric = 0;
+
 void mcamFrameCallback(FRAME frame, void* data)
 {
     
-    if (!processing && frame.m_metadata.m_height == 1080){
+    if (!processing && frame.m_metadata.m_height == 1080  /*frame.m_metadata.m_camId == mcamlist[mcamnum]*/){
         processing = true;
         // cout << "Rendering Frame" << "\n";
         int imgsize = frame.m_metadata.m_size;
@@ -311,26 +312,31 @@ int main(int argc, char* argv[]){
 
     /* now if we check our list, we should see a populated list
      * of MICRO_CAMERA objects */
-    for( int i = 0; i < numMCams; i++ ){
-        initMCamFrameReceiver( portbase+i, 1 );
+    initMCamFrameReceiver( portbase, 1 );
+    /*for( int i = 0; i < numMCams; i++ ){
+        
         printf("Found mcam with ID %u\n", mcamList[i].mcamID);
         // Star the stream for each Mcam in the list
-        if( !startMCamStream(mcamList[i], portbase+i) ){
+        if( !startMCamStream(mcamList[i], portbase) ){
         printf("Failed to start streaming mcam %u\n", mcamList[i].mcamID);
         exit(0);
         }
-    }
+    }*/
     
     /* We only want to stream HD frame */
-    for( int i = 0; i < numMCams; i++ ){
-    setMCamStreamFilter(mcamList[i], portbase+i, ATL_SCALE_MODE_HD);
-    }
+   /* for( int i = 0; i < numMCams; i++ ){
+    	setMCamStreamFilter(mcamList[i], portbase, 2);
+    }*/
     /*************************************************************/
     /*************************************************************/
     
      /* Start a loop of polling the keyboard to determine action*/
     int stepsize = 100;
     int mcamnum = 0;
+    if( !startMCamStream(mcamList[mcamnum], portbase) ){
+    printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
+    exit(0);
+    }
     while (true){
         /*FRAME image = grabMCamFrame(portbase+mcamnum, 1.0 );
         int imgsize = image.m_metadata.m_size;
@@ -347,6 +353,9 @@ int main(int argc, char* argv[]){
         //cvtColor(edges, edges, CV_GRAY2BGR);
         //addWeighted(loaded , 0.5, edges, 0.5, 0.0, loaded);
         //loaded += edges;*/
+
+	
+
         cout << "Current Metric Value:"+to_string(metric) << "\n";
 
         
@@ -379,7 +388,14 @@ int main(int argc, char* argv[]){
         }
         else if (input== 'n'){
             if (mcamnum < numMCams-1){
-                mcamnum++;
+		if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
+  		printf("unable to stop stream\n"); 
+		}                
+		mcamnum++;
+		if( !startMCamStream(mcamList[mcamnum], portbase) ){
+		printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
+		exit(0);
+		}
                 cout << "Switched Mcam" << "\n";
             }
             else{
