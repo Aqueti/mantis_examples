@@ -379,6 +379,9 @@ int main(int argc, char* argv[]){
             stepsize = newstepsize;
         }
         else if (input== 'q'){
+		if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
+		printf("unable to stop stream\n"); 
+		}
             break;
         }
         else if (input== 'a'){
@@ -399,7 +402,7 @@ int main(int argc, char* argv[]){
                 cout << "Switched Mcam" << "\n";
             }
             else{
-                cout << "Already on last Mcam in list" << "\n";
+                mcamnum=0;
             }
         }
         else{
