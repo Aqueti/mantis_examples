@@ -45,15 +45,7 @@ void newMCamCallback(MICRO_CAMERA mcam, void* data)
  * \brief Function to handle recieving microcamera frames that just 
  *        prints the mcam ID and timestamp of the received frame
  **/
-void mcamFrameCallback(FRAME frame, void* data)
-{
-           ; //do nothing
-}
-
-/**
- * \ Function that computes the focus metric from an image
- **/
-
+ 
 pair<double,Mat> calculateFocusMetric(Mat img){
     Mat edge;
     int edgeThresh = 100;
@@ -62,6 +54,39 @@ pair<double,Mat> calculateFocusMetric(Mat img){
     double metric = cv::sum( edge )[0]/imgsize;
     return make_pair(metric, edge);
 }
+
+bool processing = false;
+double metric = 0;
+void mcamFrameCallback(FRAME frame, void* data)
+{
+    
+    if (!processing && frame.m_metadata.m_height == 1080){
+        processing = true;
+        // cout << "Rendering Frame" << "\n";
+        int imgsize = frame.m_metadata.m_size;
+        Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
+        Mat loaded = imdecode(rawdata,1);
+        if (loaded.data==NULL){
+            cerr << "Failed to decode data" <<"\n";
+        }
+        pair<double,Mat> output;
+        output = calculateFocusMetric(loaded);
+        Mat edges = output.second;
+        metric = output.first;
+        cvtColor(edges, edges, CV_GRAY2BGR);
+        addWeighted(loaded , 0.5, edges, 0.5, 0.0, loaded);
+        loaded += edges;
+        imshow("Image",loaded);
+        waitKey(50);
+        processing = false;
+    }
+}
+
+/**
+ * \ Function that computes the focus metric from an image
+ **/
+
+
 
 void printHelp()
 {
@@ -136,7 +161,6 @@ return numIps;  }
 void autofocusMcam(MICRO_CAMERA automcam){
     int step = 100; //Doing a focus sweep with 100 step increments
     int numiter = 2200/step;
-    double metric = 0;
     double metricprev = 0;
     double localbestmetric = 0;
     double globalbestmetric= 0;
@@ -308,38 +332,40 @@ int main(int argc, char* argv[]){
     int stepsize = 100;
     int mcamnum = 0;
     while (true){
-        FRAME frame = grabMCamFrame(portbase+mcamnum, 1.0 );
-        int imgsize = frame.m_metadata.m_size;
+        /*FRAME image = grabMCamFrame(portbase+mcamnum, 1.0 );
+        int imgsize = image.m_metadata.m_size;
        
         size_t step=CV_AUTO_STEP;
-        Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
+        Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)image.m_image); //compressed jpg data
         Mat loaded = imdecode(rawdata,1);
         if (loaded.data==NULL){
             cerr << "Failed to decode data" <<"\n";
         }
         pair<double,Mat> output;
         output = calculateFocusMetric(loaded);
-        Mat edges = output.second;
-        cvtColor(edges, edges, CV_GRAY2BGR);
-        addWeighted(loaded , 0.5, edges, 0.5, 0.0, loaded);
-        loaded += edges;
-        cout << "Current Metric Value:"+to_string(output.first) << "\n";
+        //Mat edges = output.second;
+        //cvtColor(edges, edges, CV_GRAY2BGR);
+        //addWeighted(loaded , 0.5, edges, 0.5, 0.0, loaded);
+        //loaded += edges;*/
+        cout << "Current Metric Value:"+to_string(metric) << "\n";
 
         
-        imshow("Image", loaded);
-        waitKey(1000);
+        //imshow("Image", loaded);
+        //waitKey(1000);
         char input;
         cout << "a = auto i=In o=Out s=Step n=next camera q=Quit: ";
         cin >> input;
         if (input== 'i'){
             setMCamFocusFar(mcamList[mcamnum], stepsize);
+            sleep(1);
         }
         else if (input== 'o'){
             setMCamFocusNear(mcamList[mcamnum], stepsize);
+            sleep(1);
         }
         else if (input== 's'){
             int newstepsize;
-            cout << "Enter new step size: " << "\n";
+            cout << "Enter new step size: ";
             cin >> newstepsize;
             stepsize = newstepsize;
         }
