@@ -273,7 +273,7 @@ int main(int argc, char * argv[])
             cout << "Current metric value: "+to_string(metric[j]) << "\n";
             /* If the metric increased update the best value and position */
             if ( metric[j] > metricprev[j]){
-            cout << "metric value increased" << "\n";
+           // cout << "metric value increased" << "\n";
             localbestmetric[j] = metric[j];
             /* If the current metric is the best we've seen yet, update as current best*/
                 if ( localbestmetric[j] > globalbestmetric[j] ){
@@ -351,12 +351,23 @@ int main(int argc, char * argv[])
             
             if (metric[j]>=globalbestmetric[j] && metricprev[j]>=metric[j]){
                 /* Step back 10 steps stop focusing this camera */
+                
+                if (!stopflag){
                 cout << "Best focus acheived" << "\n";
                 setMCamFocusFar(mcamList[j], 10);
+                }
                 stopflag[j]=true;
+                
             }
             metricprev[j] = metric[j];
          }
+    }
+    /*Stop streaming */
+    for( int i = 0; i < numMCams; i++ ){
+        printf("Found mcam with ID %u\n", mcamList[i].mcamID);
+        // Star the stream for each Mcam in the list
+        if( !stopMCamStream(mcamList[i], portbase+i) ){
+        }
     }
     /* Disconnect the camera to clear ports */
     sleep(4);
