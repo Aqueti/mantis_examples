@@ -391,18 +391,26 @@ int main(int argc, char* argv[]){
         }
         else if (input== 'n'){
             if (mcamnum < numMCams-1){
-		if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
-  		printf("unable to stop stream\n"); 
-		}                
-		mcamnum++;
-		if( !startMCamStream(mcamList[mcamnum], portbase) ){
-		printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
-		exit(0);
-		}
-                cout << "Switched Mcam" << "\n";
+		        if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
+  		            printf("unable to stop stream\n"); 
+		        }  
+		        mcamnum++;              
+		        if( !startMCamStream(mcamList[mcamnum], portbase) ){
+		            printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
+		            exit(0);
+		        }
+            cout << "Switched Mcam" << "\n";
             }
             else{
+                if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
+  		            printf("unable to stop stream\n"); 
+		        }  
                 mcamnum=0;
+                if( !startMCamStream(mcamList[mcamnum], portbase) ){
+		            printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
+		            exit(0);
+		        }
+            cout << "Switched Mcam" << "\n";
             }
         }
         else{
