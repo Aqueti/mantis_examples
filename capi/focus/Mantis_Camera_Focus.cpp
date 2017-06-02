@@ -362,7 +362,7 @@ int main(int argc, char* argv[]){
         //imshow("Image", loaded);
         //waitKey(1000);
         char input;
-        cout << "a = auto i=In o=Out s=Step n=next camera q=Quit: ";
+        cout << "a = auto i=In o=Out s=Step n=next camera p= previous camera q=Quit: ";
         cin >> input;
         if (input== 'i'){
             setMCamFocusFar(mcamList[mcamnum], stepsize);
@@ -382,6 +382,7 @@ int main(int argc, char* argv[]){
 		if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
 		printf("unable to stop stream\n"); 
 		}
+		closeMCamFrameReceiver(portbase);
             break;
         }
         else if (input== 'a'){
@@ -389,12 +390,20 @@ int main(int argc, char* argv[]){
             cout << "Autofocusing Current Mcam" << "\n";
             autofocusMcam(mcamList[mcamnum]);
         }
-        else if (input== 'n'){
+        else if (input== 'n' || input== 'p'){
             if (mcamnum < numMCams-1){
 		        if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
   		            printf("unable to stop stream\n"); 
-		        }  
-		        mcamnum++;              
+		        }
+			sleep(0.5);  
+			if (input == 'n') {
+			        mcamnum++; }
+			else {
+				mcamnum--;
+			}
+			if (mcamnum<0) {
+				mcamnum=numMCams-1;
+			}             
 		        if( !startMCamStream(mcamList[mcamnum], portbase) ){
 		            printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
 		            exit(0);
@@ -406,6 +415,7 @@ int main(int argc, char* argv[]){
   		            printf("unable to stop stream\n"); 
 		        }  
                 mcamnum=0;
+		sleep(0.5);  
                 if( !startMCamStream(mcamList[mcamnum], portbase) ){
 		            printf("Failed to start streaming mcam %u\n", mcamList[mcamnum].mcamID);
 		            exit(0);
