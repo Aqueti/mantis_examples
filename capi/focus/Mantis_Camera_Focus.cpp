@@ -77,6 +77,8 @@ void mcamFrameCallback(FRAME frame, void* data)
         cvtColor(edges, edges, CV_GRAY2BGR);
         addWeighted(loaded , 0.5, edges, 0.5, 0.0, loaded);
         loaded += edges;
+	putText(loaded, "Current Metric Value: "+to_string(metric), Point2f(50,50), FONT_HERSHEY_PLAIN, 2,  Scalar(0,0,0,0));
+	namedWindow("Image", WINDOW_NORMAL);
         imshow("Image",loaded);
         waitKey(50);
         processing = false;
