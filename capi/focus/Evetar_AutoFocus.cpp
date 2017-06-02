@@ -321,6 +321,7 @@ int main(int argc, char * argv[])
             metricprev[j] = calculateFocusMetric(loaded);
      }
     /* Initiate a fine sweep */ 
+    cout << "Doing a fine sweep then stopping" << "\n";
     for (int i=0; i<20; i++){
         //cout << to_string(i) << "\n";
         /* Step each motor 10 step */
