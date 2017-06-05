@@ -91,6 +91,8 @@ void mcamFrameCallback(FRAME frame, void* data)
 	// then put the text itself
 	putText(loaded, text, Point(100,100), fontFace, fontScale,
 		Scalar::all(255), thickness, 8);
+	putText(loaded,"Current Camera: "+to_string(frame.m_metadata.m_id), Point(100,200), fontFace, 1.5,
+		Scalar::all(255), thickness, 8);
 	namedWindow("Image", WINDOW_NORMAL);
         imshow("Image",loaded);
         waitKey(50);
