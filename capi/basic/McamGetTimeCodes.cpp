@@ -22,6 +22,8 @@ const int portbase = 13000;
 bool ready = false;
 using namespace std;
 
+
+
 void newMCamCallback(MICRO_CAMERA mcam, void* data)
 {
     static int mcamCounter = 0;
@@ -30,18 +32,35 @@ void newMCamCallback(MICRO_CAMERA mcam, void* data)
 }
 
 ofstream myfile;
+double avg=0;
+double frame_ctr=0;
+double last_timestamp=0;
+double current_timestamp=0;
+int frames_to_average=300;
+
 
 void mcamFrameCallback(FRAME frame, void* data)
 {
     if (ready){
-    printf("Received a frame for microcamera %u with timestamp %lu\n",
-           frame.m_metadata.m_camId,
-           frame.m_metadata.m_timestamp);
+//    printf("Received a frame for microcamera %u with timestamp %lu\n",
+//           frame.m_metadata.m_camId,
+//          frame.m_metadata.m_timestamp);
      
-    if (myfile.is_open())
+    if (myfile.is_open() && frame.m_metadata.m_tile==1)
      {
-            myfile << to_string(frame.m_metadata.m_timestamp)+"\n";
-           
+            printf("sensorID %lu frame_time_stamp  %lu \n",(frame.m_metadata.m_camId), (frame.m_metadata.m_timestamp));
+            
+            myfile << to_string(frame.m_metadata.m_camId)+" "+to_string(frame.m_metadata.m_timestamp) +"\n";
+            current_timestamp=double(frame.m_metadata.m_timestamp);
+            avg=avg+(current_timestamp-last_timestamp)/frames_to_average;
+            last_timestamp=current_timestamp;
+            frame_ctr++;
+            if (frame_ctr==frames_to_average)   {
+                 printf("average frame to frame spacing for sensor id %i is %f \n",frame.m_metadata.m_camId, avg);
+                 avg=0;
+                 frame_ctr=0;
+            }
+
      }
  
         
@@ -179,35 +198,58 @@ int main(int argc, char* argv[]){
     frameCB.f = mcamFrameCallback;
     frameCB.data = NULL;
     setMCamFrameCallback(frameCB);
-   
-    initMCamFrameReceiver( portbase, 1 );
-  
+    for (int i = 0; i < numMCams; i++){
+    	initMCamFrameReceiver( portbase+i, 1 );
+    }
     /*************************************************************/
     /*************************************************************/
     
     /* For each camera in MCamList start the stream for 10 seconds, then stop it,
     which will allow the frame callback to recieve frames and save the timestamp
     to a file */ 
+    //ofstream outputFile("frame_timecodes.txt");
+    //myfile= ofstream ("frame_timecodes.txt");
+    myfile.open("frame_timecodes.txt",std::ofstream::out | std::ofstream::app) ;
     for (int i = 0; i < numMCams; i++){
         //Start the stream
         ready = true;
        
-        if( !startMCamStream(mcamList[i], portbase) ){
+        if( !startMCamStream(mcamList[i], portbase+i) ){
             printf("Failed to start streaming mcam %u\n", mcamList[i].mcamID);
             exit(0);
         }
+       sleep(0.2);
        // ofstream outputFile(to_string(mcamList[i].mcamID)+".txt");
        // myfile= ofstream (to_string(mcamList[i].mcamID)+".txt");
-        myfile.open(to_string(mcamList[i].mcamID)+".txt",std::ofstream::out | std::ofstream::app) ;
+
         //myfile.open(to_string(mcamList[i].mcamID)+".txt");
         //Sleep
-        sleep(2);
         //Stop the stream
-        myfile.close();
-        if( !stopMCamStream(mcamList[i], portbase) ){
+        
+    }
+
+        sleep(32);
+
+
+    for (int i = 0; i < numMCams; i++){
+        //Stop the stream
+
+        if( !stopMCamStream(mcamList[i], portbase+i) ){
             printf("Failed to stop streaming mcam %u\n", mcamList[i].mcamID);
         }
         
     }
-    closeMCamFrameReceiver(portbase);
+        myfile.close();
+
+
+
+
+
+  for (int i = 0; i < numMCams; i++){
+    	closeMCamFrameReceiver( portbase+i );
+    }
+
+
+
+
 }
