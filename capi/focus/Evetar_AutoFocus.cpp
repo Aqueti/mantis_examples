@@ -63,9 +63,10 @@ double calculateFocusMetric(Mat img){
  **/
 void printHelp()
 {
-   printf("McamStream Demo Application\n");
+   printf("Autofocus Evetar cameras\n");
    printf("Usage:\n");
    printf("\t-c FILE   Host file for microcameras (default sync.cfg) \n");
+   printf("\t-s STEPS   Specifies the stepsize for Autofocus (default 100 steps) \n");	
    printf("\t-port <port> port connect to (default 9999)\n\n");
 }
 
@@ -141,7 +142,7 @@ int main(int argc, char * argv[])
     char syncfilename[100]="sync.cfg";
     int numIps=0;
     int port = 9999;
-
+    int step = 100; //Doing a focus sweep with 100 step increments	
     for( int i = 1; i < argc; i++ ){
        if( !strcmp(argv[i],"-c") ){
           if( ++i >= argc ){
@@ -163,7 +164,15 @@ int main(int argc, char * argv[])
           }
           int length = strlen(argv[i]);
           port = atoi(argv[i]);
-       } else{
+	}
+	else if ( !strcmp(argv[i],"-s") ){
+		if( ++i >= argc ){
+             	printHelp();
+             	return 0;
+		}
+		step = atoi(argv[i]);
+		cout << "Autofocusing with "+to_string(step)+" step increments." << "\n";
+        }  else{
           printHelp();
           return 0;
        }
@@ -231,7 +240,7 @@ int main(int argc, char * argv[])
     setMCamFocusNear(mcamList[i], 0); // I currently have a modified moveFocusmotors.py that will go to "home" when given 0 for num steps
     }
     sleep(1);
-    int step = 100; //Doing a focus sweep with 100 step increments
+   
     int numiter = 2200/step;
     double metric[numMCams] = {0};
     double metricprev[numMCams] = {0};
@@ -249,7 +258,7 @@ int main(int argc, char * argv[])
             setMCamFocusFar(mcamList[j], step);
         }
         
-        sleep(1.25);
+        sleep(2);
         
         
         for (int j = 0; j < numMCams; j++){
