@@ -105,7 +105,9 @@ void mcamFrameCallback(FRAME frame, void* data)
  **/
 
 
-
+char ip[10][24];
+int numIps;
+    int port = 9999;
 void printHelp()
 {
    printf("McamStream Demo Application\n");
@@ -126,10 +128,9 @@ int getIpsFromSyncFile(char fileName[])
     int currentCam=0;
     int currentChar=0;
     int readingIP=0;
-    char ip[10][24];
+    
     memset( ip, '\0', sizeof(ip) -1 );
-    int numIps;
-    int port = 9999;
+    
     printf("in readsync now \n");
     while (fgets(line, sizeof(line), file)) {
         /* note that fgets don't strip the terminating \n, checking its
@@ -399,6 +400,11 @@ int main(int argc, char* argv[]){
 		if (!stopMCamStream(mcamList[mcamnum], portbase)){ 
 		printf("unable to stop stream\n"); 
 		}
+		for( int ii=0; ii<numIps; ii++){
+        mCamDisconnect(ip[ii], port);
+	    printf("Disconnected \n");
+
+	    }
 		closeMCamFrameReceiver(portbase);
             break;
         }

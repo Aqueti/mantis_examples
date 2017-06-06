@@ -138,7 +138,7 @@ return numIps;  }
  
 int main(int argc, char * argv[])
 {
-    char ip[10][24] = {{"10.0.1.1"},{"10.0.1.2"},{"10.0.1.3"},{"10.0.1.4"},{"10.0.1.5"},{"10.0.1.6"},{"10.0.1.7"},{"10.0.1.8"},{"10.0.1.9"},{"10.0.1.10"}};  
+    char ip[10][24];  
     char syncfilename[100]="sync.cfg";
     int numIps=0;
     int port = 9999;
@@ -385,7 +385,19 @@ int main(int argc, char * argv[])
     closeMCamFrameReceiver( portbase+i );
      mCamDisconnect(ip[i], port);
     }
+    sleep(2);
+     for( int ii=0; ii<numIps; ii++){
+    /* Connect directly to the Tegra hosting the microcamera.
+     * If the IP/port of the desired microcamera is unknown, it
+     * can be found using the getCameraMcamList method shown in 
+     * the MantisGetFrames example, which returns MICRO_CAMERA 
+     * structs for each microcamera in a Mantis system. These 
+     * structs contain the IP/port of the Tegras which host them */
+	//printf("About to connect to  ip %s on port %d \n", ip[ii],port);
+        mCamDisconnect(ip[ii], port);
+	printf("Disconnected\n");
 
+	}
     
     exit(1);
 }
