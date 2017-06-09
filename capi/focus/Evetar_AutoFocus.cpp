@@ -139,7 +139,7 @@ return numIps;  }
 int main(int argc, char * argv[])
 {
     char ip[10][24];  
-    char syncfilename[100]="sync.cfg";
+    char syncfilename[100]="/etc/aqueti/sync.cfg";
     int numIps=0;
     int port = 9999;
     int step = 100; //Doing a focus sweep with 100 step increments	
@@ -274,6 +274,13 @@ int main(int argc, char * argv[])
      
             FRAME frame = grabMCamFrame(portbase+j, 1.0 );
             int imgsize = frame.m_metadata.m_size;
+
+             std::cout << "Frame size: " << frame.m_metadata.m_size << std::endl;
+
+            if (frame.m_image == NULL){
+              std::cout << "Frame pointer null " << std::endl;
+            }
+
             size_t step=CV_AUTO_STEP;
             Mat rawdata = Mat(1, imgsize ,  CV_8UC1, (void *)frame.m_image); //compressed jpg data
             Mat loaded = imdecode(rawdata,1);
@@ -380,7 +387,6 @@ int main(int argc, char * argv[])
     }
     /*Stop streaming */
     for( int i = 0; i < numMCams; i++ ){
-        printf("Found mcam with ID %u\n", mcamList[i].mcamID);
         // Star the stream for each Mcam in the list
         if( !stopMCamStream(mcamList[i], portbase+i) ){
         }
@@ -389,21 +395,15 @@ int main(int argc, char * argv[])
     sleep(4);
     for( int i = 0; i < numMCams; i++ ){
     closeMCamFrameReceiver( portbase+i );
-     mCamDisconnect(ip[i], port);
-    }
-    sleep(2);
-     for( int ii=0; ii<numIps; ii++){
-    /* Connect directly to the Tegra hosting the microcamera.
+
+        /* Connect directly to the Tegra hosting the microcamera.
      * If the IP/port of the desired microcamera is unknown, it
      * can be found using the getCameraMcamList method shown in 
      * the MantisGetFrames example, which returns MICRO_CAMERA 
      * structs for each microcamera in a Mantis system. These 
      * structs contain the IP/port of the Tegras which host them */
-	//printf("About to connect to  ip %s on port %d \n", ip[ii],port);
-        mCamDisconnect(ip[ii], port);
-	printf("Disconnected\n");
-
-	}
+     mCamDisconnect(ip[i], port);
+    }
     
     exit(1);
 }
