@@ -232,7 +232,13 @@ int main(int argc, char * argv[])
     
     /* We only want to stream HD frame */
     for( int i = 0; i < numMCams; i++ ){
-    setMCamStreamFilter(mcamList[i], portbase+i, ATL_SCALE_MODE_HD);
+        if( setMCamStreamFilter(mcamList[i], portbase+i, ATL_SCALE_MODE_HD) ){
+            std::cout << "Set mcam " << mcamList[i].mcamID 
+                      << " stream filter to HD" << std::endl;
+        } else{
+            std::cout << "Failed to set mcam " << mcamList[i].mcamID 
+                      << " stream filter to HD" << std::endl;
+        }
     }
     
     /* Bring each Mcam to near focus*/
