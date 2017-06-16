@@ -1,18 +1,23 @@
-cmake_minimum_required(VERSION 2.8.12)
+CMake_minimum_required(VERSION 2.8.12)
 
 project(mantis_examles)
 
 option( MAKE_TESTS "Make Mantis tests" ON )
 option( MAKE_AUTOFOCUS "Make autofocus module" OFF )
 
+list(APPEND CMAKE_MODULE_PATH
+    ${CMAKE_SOURCE_DIR}/cmake
+    /etc/aqueti/cmake
+)
 list(APPEND CMAKE_PREFIX_PATH
     ${CMAKE_INSTALL_PREFIX}/lib/cmake
+    /usr/lib/cmake
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 if(${MAKE_TESTS})
-    find_package(MantisAPI CONFIG REQUIRED)
+    find_package(MantisAPI REQUIRED)
     find_package(Threads REQUIRED)
 
     include_directories(${CMAKE_INSTALL_PREFIX}/include)
