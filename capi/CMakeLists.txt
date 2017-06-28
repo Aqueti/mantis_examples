@@ -47,7 +47,6 @@ if(${MAKE_TESTS})
     )
     target_link_libraries(MantisSetExposures
         MantisAPI
-        ${OpenCV_LIBS}
         Threads::Threads
     )
     list(APPEND EXAMPLE_TARGETS MantisSetExposures)
@@ -56,7 +55,7 @@ endif()
 
 if(${MAKE_AUTOFOCUS})
     set(OpenCV_DIR /usr/local/share/OpenCV)
-    find_package(OpenCV REQUIRED COMPONENTS core highgui imgcodecs imgproc)
+    find_package(OpenCV 3.1.0 REQUIRED COMPONENTS core highgui imgcodecs imgproc)
     include_directories(include ${OpenCV_INCLUDE_DIR})
     add_executable(Evetar_AutoFocus
         focus/Evetar_AutoFocus.cpp
