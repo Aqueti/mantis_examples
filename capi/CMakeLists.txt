@@ -3,7 +3,6 @@ CMake_minimum_required(VERSION 2.8.12)
 project(mantis_examles)
 
 option( MAKE_TESTS "Make Mantis tests" ON )
-option( MAKE_AUTOFOCUS "Make autofocus module" OFF )
 
 list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
@@ -30,6 +29,7 @@ if(${MAKE_TESTS})
         MantisRecord
         McamStream
         SaveClip
+        MantisSetExposures
     )
 
     foreach(target ${EXAMPLE_TARGETS})
@@ -41,32 +41,7 @@ if(${MAKE_TESTS})
             Threads::Threads
         )
     endforeach(target)
-
-    add_executable(MantisSetExposures
-        globalWB/MantisSetExposures.c
-    )
-    target_link_libraries(MantisSetExposures
-        MantisAPI
-        Threads::Threads
-    )
-    list(APPEND EXAMPLE_TARGETS MantisSetExposures)
-
 endif()
-
-if(${MAKE_AUTOFOCUS})
-    set(OpenCV_DIR /usr/local/share/OpenCV)
-    find_package(OpenCV 3.1.0 REQUIRED COMPONENTS core highgui imgcodecs imgproc)
-    include_directories(include ${OpenCV_INCLUDE_DIR})
-    add_executable(Evetar_AutoFocus
-        focus/Evetar_AutoFocus.cpp
-    )
-    target_link_libraries(Evetar_AutoFocus
-        MantisAPI
-        ${OpenCV_LIBRARIES}
-        Threads::Threads
-    )
-    list(APPEND EXAMPLE_TARGETS Evetar_AutoFocus)
-endif(${MAKE_AUTOFOCUS})
 
 install(TARGETS ${EXAMPLE_TARGETS}
         RUNTIME DESTINATION bin
