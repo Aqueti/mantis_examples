@@ -208,7 +208,7 @@ int main(int argc, char * argv[])
                        fileName, 
                        frame.m_metadata.m_camId, 
                        frame.m_metadata.m_timestamp);
-                saveMCamFrame(frame, fileName);
+                saveFrame(frame, fileName);
 
                 /* return the frame buffer pointer to prevent memory leaks */
                 if( !returnPointer(frame.m_image) ){
