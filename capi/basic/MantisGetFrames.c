@@ -164,7 +164,7 @@ int main(int argc, char * argv[])
             /* save the frame to a JPEG */
             char fileName[32];
             sprintf(fileName, "mcam_%u", mcamList[i].mcamID);
-            if( !saveMCamFrame(frame, fileName) ){
+            if( !saveFrame(frame, fileName) ){
                 printf("Failed to save %s to disk\n", fileName);
             } else{
                 printf("Saved frame %s to disk\n", fileName);
