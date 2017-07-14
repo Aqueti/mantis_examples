@@ -129,7 +129,7 @@ int main(int argc, char * argv[])
      * same check, but is included here to illustrate the full process of
      * recording a clip of data for a Mantis system */
     if( !isReceivingData(myMantis) ){
-        if( toggleReceivingData(myMantis, true) ){
+        if( toggleReceivingData(myMantis, true, 10) ){
             printf("Virtual camera %u now receiving data\n",
                    myMantis.camID);
             sleep(0.5); //wait to give the camera time to start receiving

@@ -119,7 +119,7 @@ int main(int argc, char * argv[])
      * camera system (this should be off by default for a new camera object)
      * and tell the camera to start receiving data if needed */
     if( !isReceivingData(myMantis) ){
-        if( toggleReceivingData(myMantis, true) ){
+        if( toggleReceivingData(myMantis, true, 10) ){
             printf("Virtual camera %u now receiving data from its %d mcams\n",
                    myMantis.camID,
                    myMantis.numMCams);
