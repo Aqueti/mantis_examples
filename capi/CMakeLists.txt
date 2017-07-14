@@ -2,7 +2,7 @@ CMake_minimum_required(VERSION 2.8.12)
 
 project(mantis_examles)
 
-option( MAKE_TESTS "Make Mantis tests" ON )
+option( BUILD_TESTS "Make Mantis tests" ON )
 
 list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
@@ -18,7 +18,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 find_package(MantisAPI CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 
-if(${MAKE_TESTS})
+if(${BUILD_TESTS})
     include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
     set(EXAMPLE_TARGETS
