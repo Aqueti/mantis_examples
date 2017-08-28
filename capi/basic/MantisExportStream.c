@@ -155,8 +155,13 @@ int main(int argc, char * argv[])
        }
     }
 
+    printf("Getting frames from UTC time  %lf  for %lf seconds\n", start, duration);
+
+    printf("Connecting to V2 instance at %s:%d\n", ip, port );
+
     /* connect to the V2 instance */
     connectToCameraServer(ip, port);
+
 
     /* get cameras from API */
     int numCameras = getNumberOfCameras();
