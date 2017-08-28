@@ -30,6 +30,7 @@ if(${BUILD_TESTS})
         McamStream
         SaveClip
         MantisSetExposures
+        MantisExportStream
     )
 
     foreach(target ${EXAMPLE_TARGETS})
