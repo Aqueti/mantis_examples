@@ -13,6 +13,8 @@
 
 #include "mantis/MantisAPI.h"
 
+#define MSEC_SCALE 1e6
+
 /**
  * \brief Returns the current time as a double
  **/
@@ -21,7 +23,9 @@ uint64_t getCurrentTimestamp()
    struct timeval tv;
    gettimeofday(&tv,NULL);
 
-   double dtime = tv.tv_sec+tv.tv_usec/1e6;
+   double dtime = tv.tv_sec+tv.tv_usec/MSEC_SCALE;
+
+   printf("Time: %ld.%ld\n", tv.tv_sec, tv.tv_usec );
  
    return dtime;
 }
@@ -109,7 +113,9 @@ int main(int argc, char * argv[])
     char ip[24] = "localhost";
     int port = 9999;
     double duration = 1.0;
-    uint64_t start = (double)getCurrentTimestamp();
+//    double start = (double)getCurrentTimestamp();
+    double start = 0.0;
+    double fps = 30;
 
     for( int i = 1; i < argc; i++ ){
        if( !strcmp(argv[i],"-ip") ){
@@ -305,9 +311,6 @@ int main(int argc, char * argv[])
     MICRO_CAMERA mcamList[myMantis.numMCams];
     getCameraMCamList(myMantis, mcamList, myMantis.numMCams);
 
-    /* Next we calculate the length of a frame in microseconds */
-//    uint64_t frameLength = (uint64_t)(1.0/myClip.framerate * 1e6);
-    uint64_t frameLength = (double)1e6 * duration;
 
 
     /* Now for each microcamera, we request frames starting at the 
@@ -321,67 +324,117 @@ int main(int argc, char * argv[])
            myClip.cam.camID,
            myClip.cam.numMCams);
      */
-    uint64_t requestCounter = 0;
-    uint64_t frameCounter = 0;
-   
-    //Loop through all times
-    for( int i = 0; i < myMantis.numMCams; i++ ){
-       char filename[256];
-       sprintf( filename, "stream%d.h264", i); 
 
-       FILE * fptr = fopen( filename, "w");
-       if( fptr != NULL )  {
-          for( uint64_t t = start; t < start+duration; t += frameLength ){
-               printf("Sending frame request %lu\n", requestCounter++);
-               /* get the next frame for this mcam */
-               FRAME frame = getFrame(myMantis, 
-                                      mcamList[i].mcamID,
-                                      t,
-                                      ATL_TILING_1_1_2,
-                                      ATL_TILE_4K);
 
-               /* check that the request succeeded before using the frame */
-               if( frame.m_image != NULL ){
-                   printf("Received frame %lu for microcamera %lu at time %lu:\n"
-                          "\tdimensions: %ux%u"
-                          "\tbuffer size: %lu"
-                          "\tgain: %f"
-                          "\tshutter: %f"
-                          "\texposure: %f\n",
-                          frameCounter++,
-                          frame.m_metadata.m_id,
-                          frame.m_metadata.m_timestamp,
-                          frame.m_metadata.m_width,
-                          frame.m_metadata.m_height,
-                          frame.m_metadata.m_size,
-                          frame.m_metadata.m_gain,
-                          frame.m_metadata.m_shutter,
-                          frame.m_metadata.m_exposure);
 
-                   fwrite( fptr, 1, frame.m_metadata.m_size, fptr );
+    /*If start == 0, query time of moest recent frame*/ 
+    if( start == 0 ) {
+       FRAME frame = getFrame(myMantis
+                             , mcamList[0].mcamID
+                             , 0
+                             , ATL_TILING_1_1_2
+                             , ATL_TILE_4K
+                             );
 
-                   /* return the frame buffer pointer to prevent memory leaks */
-                   if( !returnPointer(frame.m_image) ){
-                       printf("Failed to return the pointer for the frame buffer\n");
-                   }
-               } else{
-                   printf("Frame request failed!\n");
-               }
-           }
-
-           //Close the file pointer
-           fclose(fptr);
+        if( frame.m_image !=  NULL ) {
+           start = frame.m_metadata.m_timestamp/MSEC_SCALE;
+           fps = frame.m_metadata.m_framerate;
+           printf("Start time: %lf. Waiting to buffer\n", start);
+           sleep((int64_t)duration);
+        }
+        else { 
+           printf("Unable to capture current frame from %u!\n", mcamList[0].mcamID);
         }
     }
-    printf("Received %lu of %lu requested frames across %d microcameras\n",
-           frameCounter,
-           requestCounter,
-           myMantis.numMCams);
+
+    /* Next we calculate the length of a frame in microseconds */
+    uint64_t frameLength = (uint64_t)(1.0/fps * 1e6);
+
+    if( start >0.0 ) {
+       uint64_t requestCounter = 0;
+       uint64_t frameCounter = 0;
+      
+       bool * firstFrameList = (bool *) malloc( myMantis.numMCams * sizeof(bool));
+       for( int i = 0; i < myMantis.numMCams; i++ ) {
+          firstFrameList[i] = false;
+       }
+
+       //Loop through all times
+       for( int i = 0; i < myMantis.numMCams; i++ ){
+          char filename[256];
+          sprintf( filename, "stream%d.h264", i); 
+
+          FILE * fptr = fopen( filename, "w");
+          if( fptr != NULL )  {
+             for( uint64_t t = start*MSEC_SCALE; t < (start+duration)*MSEC_SCALE; t += frameLength ){
+                  printf("Sending frame request %lu to mcam %u at time %ld \n", requestCounter++, mcamList[i].mcamID, t);
+                  /* get the next frame for this mcam */
+                  FRAME frame = getFrame( myMantis 
+                                        ,  mcamList[i].mcamID
+                                        ,  t
+                                        ,  ATL_TILING_1_1_2
+                                        ,  ATL_TILE_4K
+                                        );
+
+                  /* check that the request succeeded before using the frame */
+                  if( frame.m_image != NULL ){
+                      printf("Received frame %lu for microcamera %lu at time %lu:\n"
+                             "\tdimensions: %ux%u"
+                             "\tbuffer size: %lu"
+                             "\tgain: %f"
+                             "\tshutter: %f"
+                             "\texposure: %f\n",
+                             frameCounter++,
+                             frame.m_metadata.m_id,
+                             frame.m_metadata.m_timestamp,
+                             frame.m_metadata.m_width,
+                             frame.m_metadata.m_height,
+                             frame.m_metadata.m_size,
+                             frame.m_metadata.m_gain,
+                             frame.m_metadata.m_shutter,
+                             frame.m_metadata.m_exposure);
+
+                      if( frame.m_metadata.m_mode == ATL_MODE_H264_I_FRAME ) {
+                         printf("First frame for %u is at time %ld\n", mcamList[i].mcamID, t );
+                         firstFrameList[i] = true;
+                      } else {
+                         printf("Frame for %u at time %ld is %u\n", mcamList[i].mcamID, t, frame.m_metadata.m_mode );
+                      }
+
+                      if( firstFrameList[i] ) {
+                         fwrite( frame.m_image, 1, frame.m_metadata.m_size, fptr );          
+                      }
+
+                      /* return the frame buffer pointer to prevent memory leaks */
+                      if( !returnPointer(frame.m_image) ){
+                          printf("Failed to return the pointer for the frame buffer\n");
+                      }
+                  } else{
+                      printf("Frame request failed!\n");
+                  }
+              }
+
+              //Close the file pointer
+              fclose(fptr);
+           }
+           else { 
+              printf("Unable to open output file at %s\n", filename);
+           }
+       }
+       printf("Received %lu of %lu requested frames across %d microcameras\n",
+              frameCounter,
+              requestCounter,
+              myMantis.numMCams);
+
+       
+       free(firstFrameList);
+    }
 
     /* Disconnect the cameras to prevent issues when another program 
      * tries to connect */
     for( int i = 0; i < numCameras; i++ ){
-        disconnectCamera(cameraList[i]);
+       disconnectFromCameraServer();
+//        disconnectCamera(cameraList[i]);
     }
 
     exit(1);
