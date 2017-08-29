@@ -10,10 +10,14 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include "mantis/MantisAPI.h"
 
+#define FNAME_SIZE 1024
 #define MSEC_SCALE 1e6
+#define CONVERSION_CMD "avconv -i stream%d.h264 -qscale 1 -aq 1 stream%d_%05d.jpg"
 
 /**
  * \brief Returns the current time as a double
@@ -98,6 +102,7 @@ void printHelp()
    printf("Usage:\n");
    printf("\t-ip <address> IP Address connect to (default localhost)\n");
    printf("\t-port <port> port connect to (default 9999)\n");
+   printf("\t-path <port> path to write data to(default: \".\" )\n");
    printf("\t-start <time> time for the first clip in the format \"YYYY-MM-DD_hh:mm:ss.ff\"\n");
    printf("\t       where ff is the fraction of a second. (default = current system time)\n");
    printf("\t-duration <seconds> number of seconds to record data\n");
@@ -116,6 +121,7 @@ int main(int argc, char * argv[])
 //    double start = (double)getCurrentTimestamp();
     double start = 0.0;
     double fps = 30;
+    char path[FNAME_SIZE] = ".";
 
     for( int i = 1; i < argc; i++ ){
        if( !strcmp(argv[i],"-ip") ){
@@ -127,6 +133,16 @@ int main(int argc, char * argv[])
           if( length < 24 ){
              strncpy(ip, argv[i], length);
              ip[length] = 0;
+          }
+       } else if( !strcmp(argv[i],"-path") ){
+          if( ++i >= argc ){
+             printHelp();
+             return 0;
+          }
+          int length = strlen(argv[i]);
+          if( length < FNAME_SIZE){
+             strncpy(path, argv[i], length);
+             path[length] = 0;
           }
        } else if( !strcmp(argv[i],"-port") ){
           if( ++i >= argc ){
@@ -350,6 +366,18 @@ int main(int argc, char * argv[])
     /* Next we calculate the length of a frame in microseconds */
     uint64_t frameLength = (uint64_t)(1.0/fps * 1e6);
 
+    if( mkdir(path, 0777) < 0 ) {
+       if( errno == EEXIST ) {
+          printf("Directory exists. Overwriting\n");
+       }
+       else {
+          printf("Unable to make directory %s\n", path);
+          start = 0.0;     
+       }
+    }
+
+    printf("Writing data to %s\n", path );
+
     if( start >0.0 ) {
        uint64_t requestCounter = 0;
        uint64_t frameCounter = 0;
@@ -361,11 +389,14 @@ int main(int argc, char * argv[])
 
        //Loop through all times
        for( int i = 0; i < myMantis.numMCams; i++ ){
-          char filename[256];
-          sprintf( filename, "stream%d.h264", i); 
+          char streamname[FNAME_SIZE];
+          char metaname[FNAME_SIZE];
+          snprintf( streamname, FNAME_SIZE, "%s/stream%d.h264",path, mcamList[i].mcamID); 
 
-          FILE * fptr = fopen( filename, "w");
-          if( fptr != NULL )  {
+
+          FILE * streamPtr = fopen( streamname, "w");
+          uint64_t frameCount = 0;
+          if( streamPtr != NULL )  {
              for( uint64_t t = start*MSEC_SCALE; t < (start+duration)*MSEC_SCALE; t += frameLength ){
                   printf("Sending frame request %lu to mcam %u at time %ld \n", requestCounter++, mcamList[i].mcamID, t);
                   /* get the next frame for this mcam */
@@ -402,7 +433,19 @@ int main(int argc, char * argv[])
                       }
 
                       if( firstFrameList[i] ) {
-                         fwrite( frame.m_image, 1, frame.m_metadata.m_size, fptr );          
+                         //Append image to stream file
+                         fwrite( frame.m_image, 1, frame.m_metadata.m_size, streamPtr );          
+
+                         //Create metadata file for this image
+                         snprintf( metaname, FNAME_SIZE, "%s/stream%d_%05ld_%ld.meta", path, mcamList[i].mcamID, frameCount++, frame.m_metadata.m_timestamp ); 
+                         FILE * metaPtr = fopen( metaname, "w");
+                         if( metaPtr != NULL ) {
+                            fwrite( &frame.m_metadata, 1, sizeof( frame.m_metadata), metaPtr );
+                            fclose(metaPtr);
+                         }
+                         else {
+                            printf("Unable to open metadata file %s\n", metaname );
+                         }
                       }
 
                       /* return the frame buffer pointer to prevent memory leaks */
@@ -412,14 +455,20 @@ int main(int argc, char * argv[])
                   } else{
                       printf("Frame request failed!\n");
                   }
+
+                  //Take a break to not overload the system
+                  usleep(0.01);
               }
 
-              //Close the file pointer
-              fclose(fptr);
            }
            else { 
-              printf("Unable to open output file at %s\n", filename);
+              printf("Unable to open output file at %s\n", streamname);
            }
+
+          //Close the file pointer
+          if(streamPtr != NULL ) {
+              fclose(streamPtr);
+          }
        }
        printf("Received %lu of %lu requested frames across %d microcameras\n",
               frameCounter,
@@ -428,6 +477,22 @@ int main(int argc, char * argv[])
 
        
        free(firstFrameList);
+
+       if( requestCounter > 0 ) {
+          chdir(path);
+
+          for( int i = 0; i < myMantis.numMCams; i++ ) {
+             char command[FNAME_SIZE];
+             snprintf( command
+                     , FNAME_SIZE
+                     , "avconv -i stream%d.h264 -qscale 1 -aq 1 stream%d_%%05d.jpg"
+                     , mcamList[i].mcamID
+                     , mcamList[i].mcamID 
+                     );
+             system( command );
+          }
+       }
+        
     }
 
     /* Disconnect the cameras to prevent issues when another program 
