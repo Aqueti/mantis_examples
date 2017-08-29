@@ -2,7 +2,17 @@
  * MantisRecord.c
  * Author: Steve Feller
  *
- * This example shows how to export a clip from live or saved data
+ * This example downloads an h.264 stream from each microcamera in a system. 
+ * The first frame of a microcamera stream is the first I-frame after the 
+ * specified start time. If the start time is not provided, the timestamp
+ * of the first microcamera is used as the start time. In the latter case, the
+ * application waits the duration before starting the download process.
+ *
+ * If the cuda option is speciifed the avconv will use the cuda codec. This is
+ * not guaranteed to work if avconv is not setup propertly.
+ * 
+ * LIBAV: avconv -vsync 0 -c:v h264_cuvid -i <input.mp4> -f rawvideo <output.yuv> 
+ *
  *****************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +27,7 @@
 
 #define FNAME_SIZE 1024
 #define MSEC_SCALE 1e6
-#define CONVERSION_CMD "avconv -i stream%d.h264 -qscale 1 -aq 1 stream%d_%05d.jpg"
+#define MAX_MODE_LEN 256
 
 /**
  * \brief Returns the current time as a double
@@ -100,12 +110,19 @@ void printHelp()
 {
    printf("MantisRecord Demo Application\n");
    printf("Usage:\n");
+   printf("\t-cuda set this value to specify that the avconv process uses CUDA libraries. CUDA is not used by default\n");
    printf("\t-ip <address> IP Address connect to (default localhost)\n");
    printf("\t-port <port> port connect to (default 9999)\n");
    printf("\t-path <port> path to write data to(default: \".\" )\n");
    printf("\t-start <time> time for the first clip in the format \"YYYY-MM-DD_hh:mm:ss.ff\"\n");
+   printf("\t-output <type> output mode of the system (default: H264 )\n");
    printf("\t       where ff is the fraction of a second. (default = current system time)\n");
    printf("\t-duration <seconds> number of seconds to record data\n");
+   printf("\n");
+   printf("Supported output modes: H264, JPG\n");
+   printf("avconv must be installed for non H264 output modes.\n");
+   printf("The application does not check for CUDA support and trusts the user\n");
+   printf("\n");
 }
 
 /**
@@ -118,12 +135,16 @@ int main(int argc, char * argv[])
     char ip[24] = "localhost";
     int port = 9999;
     double duration = 1.0;
-//    double start = (double)getCurrentTimestamp();
     double start = 0.0;
     double fps = 30;
+    bool cuda = false;
     char path[FNAME_SIZE] = ".";
+    int  outputMode = ATL_OUTPUT_MODE_H264;
 
     for( int i = 1; i < argc; i++ ){
+       if( !strcmp(argv[i],"-cuda")) {
+          cuda = true;
+       }
        if( !strcmp(argv[i],"-ip") ){
           if( ++i >= argc ){
              printHelp();
@@ -171,6 +192,23 @@ int main(int argc, char * argv[])
              return 0;
           }
           duration = (double)atof( argv[i] );
+       } else if( !strcmp(argv[i],"-output") ){
+          if( ++i >= argc ){
+             printf("-output must specify a mode\n");
+             printHelp();
+             return 0;
+          }
+          if( !strncmp("H264", argv[i], 5)) {
+             outputMode = ATL_OUTPUT_MODE_H264;
+          }
+          else if( !strncmp("JPG", argv[i], 4)) {
+             outputMode = ATL_OUTPUT_MODE_JPEG;
+          } 
+          else {
+             printf("Invalid output mode of \"%s\"\n\n", argv[i]);
+             printHelp();
+             return 0;
+          }
        } else{
           printHelp();
           return 0;
@@ -478,21 +516,34 @@ int main(int argc, char * argv[])
        
        free(firstFrameList);
 
-       if( requestCounter > 0 ) {
-          chdir(path);
+       //If we are generating jpegs
+       if( outputMode ==  ATL_OUTPUT_MODE_JPEG ) {
+          if( requestCounter > 0 ) {
+             chdir(path);
 
-          for( int i = 0; i < myMantis.numMCams; i++ ) {
-             char command[FNAME_SIZE];
-             snprintf( command
-                     , FNAME_SIZE
-                     , "avconv -i stream%d.h264 -qscale 1 -aq 1 stream%d_%%05d.jpg"
-                     , mcamList[i].mcamID
-                     , mcamList[i].mcamID 
-                     );
-             system( command );
+             for( int i = 0; i < myMantis.numMCams; i++ ) {
+                char command[FNAME_SIZE];
+
+                if( cuda ) {
+                   snprintf( command
+                           , FNAME_SIZE
+                           , "avconv -c:v h264_cuvid -i stream%d.h264 -qscale 1 -aq 1 stream%d_%%05d.jpg"
+                           , mcamList[i].mcamID
+                           , mcamList[i].mcamID 
+                           );
+                }
+                else {
+                   snprintf( command
+                           , FNAME_SIZE
+                           , "avconv -i stream%d.h264 -qscale 1 -aq 1 stream%d_%%05d.jpg"
+                           , mcamList[i].mcamID
+                           , mcamList[i].mcamID 
+                           );
+                }
+                system( command );
+             }
           }
        }
-        
     }
 
     /* Disconnect the cameras to prevent issues when another program 
