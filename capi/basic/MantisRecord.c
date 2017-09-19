@@ -104,8 +104,8 @@ int main(int argc, char * argv[])
     /* Check if the camera is connected to the physical camera system
      * (this should be off by default for a new camera object) and
      * establish a connection if needed */
-    if( !isConnected(myMantis) ){
-        if( !toggleConnection(myMantis, true, 5000) ){
+    if( isCameraConnected(myMantis) != AQ_CAMERA_CONNECTED ){
+        if( setCameraConnection(myMantis, true, 15) ){
             printf("Failed to establish connection for camera %u!\n",
                    myMantis.camID);
             return 0;
@@ -136,8 +136,8 @@ int main(int argc, char * argv[])
      * This is unnecessary since startRecording automatically performs this 
      * same check, but is included here to illustrate the full process of
      * recording a clip of data for a Mantis system */
-    if( !isReceivingData(myMantis) ){
-        if( toggleReceivingData(myMantis, true, 10) ){
+    if( isCameraReceivingData(myMantis) != AQ_CAMERA_RECEIVING_DATA ){
+        if( setCameraReceivingData(myMantis, true, 15) == AQ_SUCCESS ){
             printf("Virtual camera %u now receiving data from its %d mcams\n",
                    myMantis.camID,
                    myMantis.numMCams);

@@ -140,7 +140,7 @@ int main(int argc, char * argv[])
      * connected before and we must establish a connection to retrieve the
      * correct number of microcameras */
     if( myMantis.numMCams == 0 ){
-        if( !toggleConnection(myMantis, true, 5000) ){
+        if( setCameraConnection(myMantis, true, 15) != AQ_SUCCESS ){
             printf("Failed to establish connection for camera %u!\n",
                    myMantis.camID);
             return 0;

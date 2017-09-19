@@ -105,17 +105,17 @@ int main(int argc, char * argv[])
                cameraList[i].camID);
 
         /* This function checks the current connection status */
-        bool connected = isConnected(cameraList[i]);
+        AQ_SYSTEM_STATE connected = isCameraConnected(cameraList[i]);
         printf("Camera %u is%s connected to its physical camera system\n",
                cameraList[i].camID,
-               (connected ? "" : " not"));
+               (connected == AQ_CAMERA_CONNECTED ? "" : " not"));
 
         /* If not connected, we can toggle the connection with the
          * following function. The last parameter is a timeout in
          * milliseconds that waits for the command to complete
          * before returning the current state of the connection */
-        if( !connected ){
-            if( !toggleConnection(cameraList[i], true, 5000) ){
+        if( connected != AQ_CAMERA_CONNECTED ){
+            if( setCameraConnection(cameraList[i], true, 15) != AQ_SUCCESS ){
                 printf("Failed to establish connection for camera %u!\n",
                        cameraList[i].camID);
                 return 0;

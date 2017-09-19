@@ -245,8 +245,8 @@ int main(int argc, char * argv[])
     /* Check if the camera is connected to the physical camera system
      * (this should be off by default for a new camera object) and
      * establish a connection if needed */
-    if( !isConnected(myMantis) ){
-        if( !toggleConnection(myMantis, true, 5000) ){
+    if( isCameraConnected(myMantis) != AQ_CAMERA_CONNECTED ){
+        if( setCameraConnection(myMantis, true, 15) != AQ_SUCCESS ){
             printf("Failed to establish connection for camera %u!\n",
                    myMantis.camID);
             return 0;
@@ -272,91 +272,6 @@ int main(int argc, char * argv[])
            myMantis.camID,
            myMantis.numMCams);
 
-    /* Check if the camera is receiving frame data from the physical
-     * camera system and tell the camera to start receiving data if needed. 
-     * This is unnecessary since startRecording automatically performs this 
-     * same check, but is included here to illustrate the full process of
-     * recording a clip of data for a Mantis system 
-    if( !isReceivingData(myMantis) ){
-        if( toggleReceivingData(myMantis, true, 10) ){
-            printf("Virtual camera %u now receiving data from its %d mcams\n",
-                   myMantis.camID,
-                   myMantis.numMCams);
-            sleep(0.5); //wait to give the camera time to start receiving
-        } else{
-            printf("Virtual camera %u failed to start receiving data!\n",
-                   myMantis.camID);
-            exit(0);
-        }
-    } else{
-        printf("Virtual camera %u already receiving data from its %d mcams\n",
-                myMantis.camID,
-                myMantis.numMCams);
-    }
-    */
-    
-    
-    /* First, we must bind a new clip callback to receive the structs
-     * describing any clips we record (name, start time, end time, etc.).
-     * Our callback is a simple example that just copies the new clip
-     * struct into an empty clip struct that we provide 
-    ACOS_CLIP_CALLBACK clipCB;
-    clipCB.f = newClipCallback;
-    */
-    /* Initialize the clip struct to zero. This will be relevant later on 
-    ACOS_CLIP myClip = {0};
-    clipCB.data = &myClip;
-    setNewClipCallback(clipCB);
-    printf("New clip callback registered with the API\n");
-    */
-
-    /* Now we can start recording a clip. If a name for the clip is not
-     * given (pass in an empty string), then the camera automatically
-     * assigns the current date and time as the clip name 
-    if( !startRecordingClip(myMantis, "") ){
-        printf("Failed to start recording a clip on camera %u\n", myMantis.camID);
-        exit(0);
-    } else{
-        printf("Started recording a clip\n");
-    }
-    */
-
-    /* We wait for however long we want the clip to be, and then send
-     * the command to stop recording. This clip will be ~15 seconds.
-    sleep(5);
-    if( !stopRecordingClip(myMantis, "") ){
-        printf("Failed to stop recording a clip on camera %u\n", myMantis.camID);
-        exit(0);
-    } else{
-        printf("Stopped recording the clip\n");
-    }
-    */
-
-    /* The camera now takes a moment to finish writing the clip data to 
-     * disk, and then calls the new clip callback to signal that the 
-     * clip has been successfully saved and its data is now accessible 
-     * via other API methods. Since we initialized our clip struct to 0,
-     * we will know when then callback has been called because the struct
-     * will no longer have 0 values 
-    while( myClip.startTime == 0 
-           || myClip.endTime == 0 
-           || myClip.framerate == 0 ){
-        sleep(0.1);
-    }
-    */
-
-    /* Now that our clip is available, we can retrieve its frames using
-     * the same method that we used to retrieve live frames in the 
-     * MantisGetFrames example code. The primary difference is that since
-     * we now have start and end times for our saved data, we can
-     * intelligently ask for specific frame times instead of using time=0 
-     * to get the most recent frame. The rest of this example will get all
-     * the clip frames and print some information about each frame 
-    double s = (double)((myClip.endTime - myClip.startTime)/1e6);
-    printf("A new clip (%f seconds) has been created with name %s\n", 
-           s, 
-           myClip.name);
-    */
 
     /* First, get the microcameras for the Mantis so we know what to request.
      * Note: the ACOS_CAMERA struct in the returned ACOS_CLIP struct should be 
@@ -364,8 +279,6 @@ int main(int argc, char * argv[])
      * unless the struct was corrupted by unsafe use of the API */
     MICRO_CAMERA mcamList[myMantis.numMCams];
     getCameraMCamList(myMantis, mcamList, myMantis.numMCams);
-
-
 
     /* Now for each microcamera, we request frames starting at the 
      * startTime and increment the time of our requests by the length 
@@ -378,8 +291,6 @@ int main(int argc, char * argv[])
            myClip.cam.camID,
            myClip.cam.numMCams);
      */
-
-
 
     /*If start == 0, query time of moest recent frame*/ 
     if( start == 0 ) {
