@@ -93,7 +93,7 @@ int main(int argc, char * argv[])
     for( int i = 0; i < numCameras; i++ ){
         printf("Found camera with ID %u and %d microcameras\n",
                 cameraList[i].camID,
-                cameraList[i].numMCams);
+                cameraList[i].mcamList.numMCams);
     }
 
     /* If these cameras report 0 microcameras, this means that they have
@@ -135,7 +135,7 @@ int main(int argc, char * argv[])
         /* If we want, we can correct the 0 in the ACOS_CAMERA struct.
          * This is not needed for use as input to the API functions, but may
          * be useful if we are saving the structs for our own use. */
-        cameraList[i].numMCams = numMCams;
+        cameraList[i].mcamList.numMCams = numMCams;
     }
 
     /* Disconnect the cameras to prevent issues when another program 

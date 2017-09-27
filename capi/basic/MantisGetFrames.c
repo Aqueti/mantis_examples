@@ -108,12 +108,12 @@ int main(int argc, char * argv[])
      * know how many microcameras it contained. Now that it is connected,
      * we can query the correct number of microcameras. We will need
      * this later to request frames. */
-    if( myMantis.numMCams == 0 ){
-        myMantis.numMCams = getCameraNumberOfMCams(myMantis);
+    if( myMantis.mcamList.numMCams == 0 ){
+        myMantis.mcamList.numMCams = getCameraNumberOfMCams(myMantis);
     }
     printf("Camera system %u contains %u microcameras\n",
            myMantis.camID,
-           myMantis.numMCams);
+           myMantis.mcamList.numMCams);
 
     /* Check if the camera is receiving frame data from the physical
      * camera system (this should be off by default for a new camera object)
@@ -122,7 +122,7 @@ int main(int argc, char * argv[])
         if( setCameraReceivingData(myMantis, true, 15) == AQ_SUCCESS ){
             printf("Virtual camera %u now receiving data from its %d mcams\n",
                    myMantis.camID,
-                   myMantis.numMCams);
+                   myMantis.mcamList.numMCams);
             sleep(1); //short sleep to give the camera time to start receiving
         } else{
             printf("Virtual camera %u failed to start receiving data!\n",
@@ -132,13 +132,13 @@ int main(int argc, char * argv[])
     } else{
         printf("Virtual camera %u already receiving data from its %d mcams\n",
                 myMantis.camID,
-                myMantis.numMCams);
+                myMantis.mcamList.numMCams);
     }
 
     /* retrieve a list of microcameras from the Mantis camera */
-    MICRO_CAMERA mcamList[myMantis.numMCams];
-    getCameraMCamList(myMantis, mcamList, myMantis.numMCams);
-    for( int i = 0; i < myMantis.numMCams; i++ ){
+    MICRO_CAMERA mcamList[myMantis.mcamList.numMCams];
+    getCameraMCamList(myMantis, mcamList, myMantis.mcamList.numMCams);
+    for( int i = 0; i < myMantis.mcamList.numMCams; i++ ){
         printf("API found microcamera %u at %s for camera %u\n",
                mcamList[i].mcamID,
                mcamList[i].tegraip,
@@ -151,7 +151,7 @@ int main(int argc, char * argv[])
      * happening sequentially in a loop, the most recent frame retrieved 
      * from each mcam in the list may be at different times since the 
      * requests happen at different times. */
-    for( int i = 0; i < myMantis.numMCams; i++ ){
+    for( int i = 0; i < myMantis.mcamList.numMCams; i++ ){
 
         /* get the next frame for this mcam */
         FRAME frame = getFrame(myMantis, 

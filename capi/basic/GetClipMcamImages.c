@@ -139,7 +139,7 @@ int main(int argc, char * argv[])
     /* If the camera struct reports 0 microcameras, then it has never been
      * connected before and we must establish a connection to retrieve the
      * correct number of microcameras */
-    if( myMantis.numMCams == 0 ){
+    if( myMantis.mcamList.numMCams == 0 ){
         if( setCameraConnection(myMantis, true, 15) != AQ_SUCCESS ){
             printf("Failed to establish connection for camera %u!\n",
                    myMantis.camID);
@@ -149,22 +149,22 @@ int main(int argc, char * argv[])
                    myMantis.camID);
             sleep(1);
         }
-        myMantis.numMCams = getCameraNumberOfMCams(myMantis);
+        myMantis.mcamList.numMCams = getCameraNumberOfMCams(myMantis);
     }
 
     /* Next, get the microcameras for the Mantis so we know what to request.
      * Note: the ACOS_CAMERA struct in the returned ACOS_CLIP struct should be 
      * identical to the one used in the start/stop recording commands
      * unless the struct was corrupted by unsafe use of the API */
-    MICRO_CAMERA mcamList[myMantis.numMCams];
-    getCameraMCamList(myMantis, mcamList, myMantis.numMCams);
+    MICRO_CAMERA mcamList[myMantis.mcamList.numMCams];
+    getCameraMCamList(myMantis, mcamList, myMantis.mcamList.numMCams);
 
     /* if a specific mcam was chosen, remove the rest form the list */
-    int numMCams = (mcamID == 0) ? myMantis.numMCams : 1;
+    int numMCams = (mcamID == 0) ? myMantis.mcamList.numMCams : 1;
     printf("Requesting frames for %d microcameras\n", numMCams);
     if( mcamID != 0 ){
         MICRO_CAMERA mcam;
-        for( int i = 0; i < myMantis.numMCams; i++ ){
+        for( int i = 0; i < numMCams; i++ ){
             if( mcamList[i].mcamID == mcamID ){
                 mcam = mcamList[i];
             } else{
@@ -223,7 +223,7 @@ int main(int argc, char * argv[])
     printf("Received %lu of %lu requested frames across %d microcameras\n",
            frameCounter,
            requestCounter,
-           myMantis.numMCams);
+           numMCams);
 
     /* Disconnect the cameras to prevent issues when another program 
      * tries to connect */

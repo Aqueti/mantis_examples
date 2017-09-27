@@ -124,12 +124,12 @@ int main(int argc, char * argv[])
      * know how many microcameras it contained. Now that it is connected,
      * we can query the correct number of microcameras. We will need
      * this information later to get our recorded frames */
-    if( myMantis.numMCams == 0 ){
-        myMantis.numMCams = getCameraNumberOfMCams(myMantis);
+    if( myMantis.mcamList.numMCams == 0 ){
+        myMantis.mcamList.numMCams = getCameraNumberOfMCams(myMantis);
     }
     printf("Camera system %u contains %u microcameras\n",
            myMantis.camID,
-           myMantis.numMCams);
+           myMantis.mcamList.numMCams);
 
     /* Check if the camera is receiving frame data from the physical
      * camera system and tell the camera to start receiving data if needed. 
@@ -140,7 +140,7 @@ int main(int argc, char * argv[])
         if( setCameraReceivingData(myMantis, true, 15) == AQ_SUCCESS ){
             printf("Virtual camera %u now receiving data from its %d mcams\n",
                    myMantis.camID,
-                   myMantis.numMCams);
+                   myMantis.mcamList.numMCams);
             sleep(0.5); //wait to give the camera time to start receiving
         } else{
             printf("Virtual camera %u failed to start receiving data!\n",
@@ -150,7 +150,7 @@ int main(int argc, char * argv[])
     } else{
         printf("Virtual camera %u already receiving data from its %d mcams\n",
                 myMantis.camID,
-                myMantis.numMCams);
+                myMantis.mcamList.numMCams);
     }
     
     /* First, we must bind a new clip callback to receive the structs
@@ -213,8 +213,8 @@ int main(int argc, char * argv[])
      * Note: the ACOS_CAMERA struct in the returned ACOS_CLIP struct should be 
      * identical to the one used in the start/stop recording commands
      * unless the struct was corrupted by unsafe use of the API */
-    MICRO_CAMERA mcamList[myClip.cam.numMCams];
-    getCameraMCamList(myClip.cam, mcamList, myMantis.numMCams);
+    MICRO_CAMERA mcamList[myClip.cam.mcamList.numMCams];
+    getCameraMCamList(myClip.cam, mcamList, myMantis.mcamList.numMCams);
 
     /* Next we calculate the length of a frame in microseconds */
     uint64_t frameLength = (uint64_t)(1.0/myClip.framerate * 1e6);
@@ -228,11 +228,11 @@ int main(int argc, char * argv[])
     printf("Requesting frames for clip %s on camera %u from %d microcameras\n",
            myClip.name,
            myClip.cam.camID,
-           myClip.cam.numMCams);
+           myClip.cam.mcamList.numMCams);
     uint64_t requestCounter = 0;
     uint64_t frameCounter = 0;
     for( uint64_t t = myClip.startTime; t < myClip.endTime; t += frameLength ){
-        for( int i = 0; i < myMantis.numMCams; i++ ){
+        for( int i = 0; i < myMantis.mcamList.numMCams; i++ ){
             printf("Sending frame request %lu\n", requestCounter++);
             /* get the next frame for this mcam */
             FRAME frame = getFrame(myMantis, 
@@ -272,7 +272,7 @@ int main(int argc, char * argv[])
     printf("Received %lu of %lu requested frames across %d microcameras\n",
            frameCounter,
            requestCounter,
-           myMantis.numMCams);
+           myMantis.mcamList.numMCams);
 
     /* Disconnect the cameras to prevent issues when another program 
      * tries to connect */

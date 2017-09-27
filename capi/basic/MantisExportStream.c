@@ -265,32 +265,20 @@ int main(int argc, char * argv[])
      * know how many microcameras it contained. Now that it is connected,
      * we can query the correct number of microcameras. We will need
      * this information later to get our recorded frames */
-    if( myMantis.numMCams == 0 ){
-        myMantis.numMCams = getCameraNumberOfMCams(myMantis);
+    if( myMantis.mcamList.numMCams == 0 ){
+        myMantis.mcamList.numMCams = getCameraNumberOfMCams(myMantis);
     }
     printf("Camera system %u contains %u microcameras\n",
            myMantis.camID,
-           myMantis.numMCams);
+           myMantis.mcamList.numMCams);
 
 
     /* First, get the microcameras for the Mantis so we know what to request.
      * Note: the ACOS_CAMERA struct in the returned ACOS_CLIP struct should be 
      * identical to the one used in the start/stop recording commands
      * unless the struct was corrupted by unsafe use of the API */
-    MICRO_CAMERA mcamList[myMantis.numMCams];
-    getCameraMCamList(myMantis, mcamList, myMantis.numMCams);
-
-    /* Now for each microcamera, we request frames starting at the 
-     * startTime and increment the time of our requests by the length 
-     * of a frame until we reach the endTime, Unlike when requesting
-     * the most recent frame, requesting a specific time may fail
-     * if a frame was dropped, so it is good to check that the image
-     * buffer pointer is not NULL before interacting with the frame 
-    printf("Requesting frames for clip %s on camera %u from %d microcameras\n",
-           myClip.name,
-           myClip.cam.camID,
-           myClip.cam.numMCams);
-     */
+    MICRO_CAMERA mcamList[myMantis.mcamList.numMCams];
+    getCameraMCamList(myMantis, mcamList, myMantis.mcamList.numMCams);
 
     /*If start == 0, query time of moest recent frame*/ 
     if( start == 0 ) {
@@ -331,13 +319,13 @@ int main(int argc, char * argv[])
        uint64_t requestCounter = 0;
        uint64_t frameCounter = 0;
       
-       bool * firstFrameList = (bool *) malloc( myMantis.numMCams * sizeof(bool));
-       for( int i = 0; i < myMantis.numMCams; i++ ) {
+       bool * firstFrameList = (bool *) malloc( myMantis.mcamList.numMCams * sizeof(bool));
+       for( int i = 0; i < myMantis.mcamList.numMCams; i++ ) {
           firstFrameList[i] = false;
        }
 
        //Loop through all times
-       for( int i = 0; i < myMantis.numMCams; i++ ){
+       for( int i = 0; i < myMantis.mcamList.numMCams; i++ ){
           char streamname[FNAME_SIZE];
           char metaname[FNAME_SIZE];
           snprintf( streamname, FNAME_SIZE, "%s/stream%d.h264",path, mcamList[i].mcamID); 
@@ -422,7 +410,7 @@ int main(int argc, char * argv[])
        printf("Received %lu of %lu requested frames across %d microcameras\n",
               frameCounter,
               requestCounter,
-              myMantis.numMCams);
+              myMantis.mcamList.numMCams);
 
        
        free(firstFrameList);
@@ -432,7 +420,7 @@ int main(int argc, char * argv[])
           if( requestCounter > 0 ) {
              chdir(path);
 
-             for( int i = 0; i < myMantis.numMCams; i++ ) {
+             for( int i = 0; i < myMantis.mcamList.numMCams; i++ ) {
                 char command[FNAME_SIZE];
 
                 if( cuda ) {
