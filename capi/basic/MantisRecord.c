@@ -168,7 +168,7 @@ int main(int argc, char * argv[])
     /* Now we can start recording a clip. If a name for the clip is not
      * given (pass in an empty string), then the camera automatically
      * assigns the current date and time as the clip name */
-    if( !startRecordingClip(myMantis, "") ){
+    if( setCameraRecording(myMantis, true, 10) != AQ_SUCCESS ){
         printf("Failed to start recording a clip on camera %u\n", myMantis.camID);
         exit(0);
     } else{
@@ -178,7 +178,7 @@ int main(int argc, char * argv[])
     /* We wait for however long we want the clip to be, and then send
      * the command to stop recording. This clip will be ~15 seconds. */
     sleep(5);
-    if( !stopRecordingClip(myMantis, "") ){
+    if( setCameraRecording(myMantis, false, 10) != AQ_SUCCESS ){
         printf("Failed to stop recording a clip on camera %u\n", myMantis.camID);
         exit(0);
     } else{
